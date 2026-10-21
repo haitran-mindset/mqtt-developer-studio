@@ -82,11 +82,19 @@ export class MQTTClientAdapter {
       await this.disconnect();
     }
 
-    this.setStatus('connecting');
-    this.addLog('info', `Connecting to ${this.profile.protocol}://${this.profile.host}:${this.profile.port}${this.profile.path}`);
+    const isWs = this.profile.protocol === 'ws' || this.profile.protocol === 'wss';
+    const path = isWs
+      ? this.profile.path
+        ? this.profile.path.startsWith('/')
+          ? this.profile.path
+          : `/${this.profile.path}`
+        : '/mqtt'
+      : '';
+    const brokerUrl = isWs
+      ? `${this.profile.protocol}://${this.profile.host}:${this.profile.port}${path}`
+      : `${this.profile.protocol}://${this.profile.host}:${this.profile.port}`;
 
-    const path = this.profile.path.startsWith('/') ? this.profile.path : `/${this.profile.path}`;
-    const brokerUrl = `${this.profile.protocol}://${this.profile.host}:${this.profile.port}${path}`;
+    this.addLog('info', `Connecting to ${brokerUrl}`);
 
     const isMQTT5 = this.profile.mqttVersion === '5.0';
 

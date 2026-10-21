@@ -1,5 +1,5 @@
 export type MQTTVersion = '3.1.1' | '5.0';
-export type Protocol = 'ws' | 'wss';
+export type Protocol = 'mqtt' | 'mqtts' | 'ws' | 'wss';
 export type QoS = 0 | 1 | 2;
 export type PayloadFormat = 'text' | 'json' | 'xml' | 'hex' | 'base64' | 'binary';
 

@@ -12,16 +12,17 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Dices } from 'lucide-react';
 import type { ConnectionProfile, Protocol, MQTTVersion, QoS } from '@/core/db/types';
 import { useDataStore } from '@/core/store/dataStore';
 import { toast } from 'sonner';
 
 const connectionSchema = z.object({
   name: z.string().min(1, 'Connection name is required'),
-  protocol: z.enum(['ws', 'wss']),
+  protocol: z.enum(['mqtt', 'mqtts', 'ws', 'wss']),
   host: z.string().min(1, 'Host is required'),
   port: z.coerce.number().min(1).max(65535),
-  path: z.string().min(1, 'Path is required'),
+  path: z.string().optional().default('/mqtt'),
   clientId: z.string().min(1, 'Client ID is required'),
   username: z.string().optional(),
   password: z.string().optional(),
@@ -183,6 +184,12 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
     }
   };
 
+  const handleRandomClientId = () => {
+    const randId = `mqtt_studio_${Math.random().toString(16).substring(2, 10)}`;
+    setValue('clientId', randId, { shouldValidate: true });
+    toast.success('Generated random Client ID');
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-zinc-950 border-zinc-800 text-zinc-100">
@@ -191,7 +198,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
             <span>{profile ? 'Edit Connection Profile' : 'New MQTT Broker Connection'}</span>
           </DialogTitle>
           <DialogDescription className="text-xs text-zinc-400">
-            Configure WebSocket connection parameters. WebSocket endpoints (WS/WSS) are required in browser environments.
+            Configure broker connection parameters across mqtt://, mqtts://, ws://, or wss:// endpoints.
           </DialogDescription>
         </DialogHeader>
 
@@ -205,8 +212,29 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
             </div>
 
             <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Client ID</label>
-              <Input {...register('clientId')} placeholder="client id" />
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-medium text-zinc-300">Client ID</label>
+                <button
+                  type="button"
+                  onClick={handleRandomClientId}
+                  className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer font-mono"
+                  title="Generate random Client ID"
+                >
+                  <Dices className="h-3 w-3" />
+                  <span>Random</span>
+                </button>
+              </div>
+              <div className="relative flex items-center">
+                <Input {...register('clientId')} placeholder="client id" className="pr-8" />
+                <button
+                  type="button"
+                  onClick={handleRandomClientId}
+                  className="absolute right-1.5 p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-cyan-400 transition-colors cursor-pointer"
+                  title="Generate random Client ID"
+                >
+                  <Dices className="h-3.5 w-3.5" />
+                </button>
+              </div>
               {errors.clientId && <span className="text-rose-400 text-[10px]">{errors.clientId.message}</span>}
             </div>
           </div>
@@ -220,13 +248,26 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                 onChange={(e) => {
                   const p = e.target.value as Protocol;
                   setValue('protocol', p);
-                  if (p === 'wss' && watch('port') === 8083) setValue('port', 8084);
-                  if (p === 'ws' && watch('port') === 8084) setValue('port', 8083);
+                  if (p === 'mqtt') {
+                    setValue('port', 1883);
+                    setValue('path', '');
+                  } else if (p === 'mqtts') {
+                    setValue('port', 8883);
+                    setValue('path', '');
+                  } else if (p === 'ws') {
+                    setValue('port', 8083);
+                    setValue('path', '/mqtt');
+                  } else if (p === 'wss') {
+                    setValue('port', 8084);
+                    setValue('path', '/mqtt');
+                  }
                 }}
-                className="w-full h-8 rounded-md border border-zinc-750 bg-zinc-900 px-2 text-xs font-mono text-zinc-200 focus:outline-none focus:border-cyan-500"
+                className="w-full h-8 rounded-md border border-zinc-750 bg-zinc-900 px-2 text-xs font-mono text-zinc-200 focus:outline-none focus:border-cyan-500 cursor-pointer"
               >
-                <option value="wss">WSS (Secure)</option>
-                <option value="ws">WS (Plain)</option>
+                <option value="mqtt">mqtt:// (TCP)</option>
+                <option value="mqtts">mqtts:// (TLS/SSL)</option>
+                <option value="ws">ws:// (WebSocket)</option>
+                <option value="wss">wss:// (WebSocket Secure)</option>
               </select>
             </div>
 
@@ -243,8 +284,14 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
 
             <div className="col-span-2 space-y-1">
               <label className="text-[11px] font-medium text-zinc-300">Path</label>
-              <Input {...register('path')} placeholder="/mqtt" />
+              <Input {...register('path')} placeholder={protocol === 'ws' || protocol === 'wss' ? '/mqtt' : ''} />
             </div>
+
+            {(protocol === 'mqtt' || protocol === 'mqtts') && (
+              <div className="col-span-12 text-[10px] text-amber-400/90 bg-amber-950/30 border border-amber-800/40 rounded px-2.5 py-1.5 font-mono">
+                💡 Lưu ý: Trình duyệt web kết nối trực tiếp đến <strong className="text-amber-300">mqtt://</strong> hoặc <strong className="text-amber-300">mqtts://</strong> thông qua WebSocket proxy/bridge. Đối với broker public thông thường, hãy sử dụng cổng WebSocket: <strong className="text-cyan-400">ws://</strong> (port 8083) hoặc <strong className="text-cyan-400">wss://</strong> (port 8084).
+              </div>
+            )}
           </div>
 
           {/* Section: Authentication */}
