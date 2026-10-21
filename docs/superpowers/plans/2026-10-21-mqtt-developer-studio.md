@@ -34,11 +34,11 @@
 **Interfaces:**
 - Produces: Project build pipeline (`npm run build`, `npm run test`, `npm run dev`) and basic theme styles.
 
-- [ ] **Step 1: Create package.json with all required dependencies**
-- [ ] **Step 2: Create Vite & TypeScript configs**
-- [ ] **Step 3: Setup index.html and root mount in src/main.tsx**
-- [ ] **Step 4: Install dependencies and verify clean build**
-- [ ] **Step 5: Commit scaffolding**
+- [x] **Step 1: Create package.json with all required dependencies**
+- [x] **Step 2: Create Vite & TypeScript configs**
+- [x] **Step 3: Setup index.html and root mount in src/main.tsx**
+- [x] **Step 4: Install dependencies and verify clean build**
+- [x] **Step 5: Commit scaffolding**
 
 ---
 
@@ -60,11 +60,11 @@
   - `workflowRuns`: `Table<WorkflowRunRecord, string>`
 - Seed data: Pre-configured public test brokers (EMQX, HiveMQ, Mosquitto over WSS) and ready-to-use workflow templates.
 
-- [ ] **Step 1: Write Dexie DB unit tests**
-- [ ] **Step 2: Implement StudioDatabase & schemas**
-- [ ] **Step 3: Implement seed data generator**
-- [ ] **Step 4: Run test to verify DB operations pass**
-- [ ] **Step 5: Commit persistence layer**
+- [x] **Step 1: Write Dexie DB unit tests**
+- [x] **Step 2: Implement StudioDatabase & schemas**
+- [x] **Step 3: Implement seed data generator**
+- [x] **Step 4: Run test to verify DB operations pass**
+- [x] **Step 5: Commit persistence layer**
 
 ---
 
@@ -87,10 +87,10 @@
   - `{{sequence}}` -> monotonic sequence counter
   - User-defined and workflow context variables
 
-- [ ] **Step 1: Write tests for dynamic variable token replacement**
-- [ ] **Step 2: Implement VariableInterpolator**
-- [ ] **Step 3: Verify all test cases pass**
-- [ ] **Step 4: Commit template engine**
+- [x] **Step 1: Write tests for dynamic variable token replacement**
+- [x] **Step 2: Implement VariableInterpolator**
+- [x] **Step 3: Verify all test cases pass**
+- [x] **Step 4: Commit template engine**
 
 ---
 
@@ -110,11 +110,11 @@
   - `MQTTClientAdapter`: MQTT.js wrapper handling WS/WSS, MQTT 3.1.1, MQTT 5.0, LWT, reconnect, QoS 0/1/2.
   - `MQTTConnectionManager`: Singleton registry managing multiple client connections, emitting status events (`disconnected`, `connecting`, `connected`, `reconnecting`, `error`) and packet traffic.
 
-- [ ] **Step 1: Write tests for TopicMatcher and ConnectionManager**
-- [ ] **Step 2: Implement MQTTTopicMatcher**
-- [ ] **Step 3: Implement MQTTClientAdapter & MQTTConnectionManager**
-- [ ] **Step 4: Run tests and verify protocol lifecycle events**
-- [ ] **Step 5: Commit MQTT core layer**
+- [x] **Step 1: Write tests for TopicMatcher and ConnectionManager**
+- [x] **Step 2: Implement MQTTTopicMatcher**
+- [x] **Step 3: Implement MQTTClientAdapter & MQTTConnectionManager**
+- [x] **Step 4: Run tests and verify protocol lifecycle events**
+- [x] **Step 5: Commit MQTT core layer**
 
 ---
 
@@ -134,11 +134,11 @@
   - Lifecycle hooks: `onStepStart`, `onStepComplete`, `onStepError`, `onWorkflowComplete`
   - Real-time cancel / abort capability
 
-- [ ] **Step 1: Write unit tests covering sequential execution, wait-for-message correlation, and conditional branching**
-- [ ] **Step 2: Implement StepExecutors for all 14 types**
-- [ ] **Step 3: Implement WorkflowEngine graph runner**
-- [ ] **Step 4: Verify test suite passes**
-- [ ] **Step 5: Commit workflow engine**
+- [x] **Step 1: Write unit tests covering sequential execution, wait-for-message correlation, and conditional branching**
+- [x] **Step 2: Implement StepExecutors for all 14 types**
+- [x] **Step 3: Implement WorkflowEngine graph runner**
+- [x] **Step 4: Verify test suite passes**
+- [x] **Step 5: Commit workflow engine**
 
 ---
 
@@ -163,11 +163,11 @@
 **Interfaces:**
 - Produces: Complete IDE shell with dark-mode theme, collapsible panels, active connection selector, and tabbed view navigation (`publisher`, `subscriber`, `workflow`, `connections`).
 
-- [ ] **Step 1: Implement Tailwind utilities and Radix/shadcn UI components**
-- [ ] **Step 2: Create studioStore (Zustand) for active tabs and view states**
-- [ ] **Step 3: Build responsive workbench shell components**
-- [ ] **Step 4: Verify workbench renders cleanly**
-- [ ] **Step 5: Commit UI shell**
+- [x] **Step 1: Implement Tailwind utilities and Radix/shadcn UI components**
+- [x] **Step 2: Create studioStore (Zustand) for active tabs and view states**
+- [x] **Step 3: Build responsive workbench shell components**
+- [x] **Step 4: Verify workbench renders cleanly**
+- [x] **Step 5: Commit UI shell**
 
 ---
 
@@ -186,11 +186,11 @@
   - Connect/Disconnect with live visual status
   - Load pre-configured public test brokers with 1 click
 
-- [ ] **Step 1: Implement connection configuration dialog with Zod validation**
-- [ ] **Step 2: Implement profile management and instant connect/disconnect triggers**
-- [ ] **Step 3: Connect to MQTTConnectionManager and Dexie storage**
-- [ ] **Step 4: Verify connection UI and profile CRUD**
-- [ ] **Step 5: Commit connection manager**
+- [x] **Step 1: Implement connection configuration dialog with Zod validation**
+- [x] **Step 2: Implement profile management and instant connect/disconnect triggers**
+- [x] **Step 3: Connect to MQTTConnectionManager and Dexie storage**
+- [x] **Step 4: Verify connection UI and profile CRUD**
+- [x] **Step 5: Commit connection manager**
 
 ---
 
@@ -210,11 +210,11 @@
   - Publish Once, Publish Repeatedly (N times), Publish on Interval, Delay publish
   - Save as Preset and quick preset loader
 
-- [ ] **Step 1: Integrate Monaco Editor with format switching and validation**
-- [ ] **Step 2: Implement dynamic variable picker and preview resolver**
-- [ ] **Step 3: Implement publish scheduling and repeat logic**
-- [ ] **Step 4: Verify message dispatch and preset saving**
-- [ ] **Step 5: Commit publisher module**
+- [x] **Step 1: Integrate Monaco Editor with format switching and validation**
+- [x] **Step 2: Implement dynamic variable picker and preview resolver**
+- [x] **Step 3: Implement publish scheduling and repeat logic**
+- [x] **Step 4: Verify message dispatch and preset saving**
+- [x] **Step 5: Commit publisher module**
 
 ---
 
@@ -235,11 +235,11 @@
   - Multi-tab detail inspector: Raw, Pretty JSON, JSON Tree, Hex viewer, MQTT 5 user properties
   - Message actions: Copy topic, Copy payload, Republish, Export (JSON/CSV), Clear stream
 
-- [ ] **Step 1: Implement subscription manager and wildcard listener**
-- [ ] **Step 2: Implement virtualized message table and filtering**
-- [ ] **Step 3: Implement JSON Tree View and Hex View inspectors**
-- [ ] **Step 4: Verify live message receipt, tree inspection, and export**
-- [ ] **Step 5: Commit subscriber module**
+- [x] **Step 1: Implement subscription manager and wildcard listener**
+- [x] **Step 2: Implement virtualized message table and filtering**
+- [x] **Step 3: Implement JSON Tree View and Hex View inspectors**
+- [x] **Step 4: Verify live message receipt, tree inspection, and export**
+- [x] **Step 5: Commit subscriber module**
 
 ---
 
@@ -262,11 +262,11 @@
   - Workflow execution controls (Run, Pause, Abort, Reset)
   - Preloaded templates (Request/Response RPC, Telemetry Simulator, Sequential Command Chain)
 
-- [ ] **Step 1: Implement custom React Flow nodes with port connections**
-- [ ] **Step 2: Build node palette, drag-and-drop canvas, and property inspector**
-- [ ] **Step 3: Wire WorkflowCanvas to WorkflowEngine with live step status updates**
-- [ ] **Step 4: Implement pre-built workflow templates and run tests**
-- [ ] **Step 5: Commit visual workflow studio**
+- [x] **Step 1: Implement custom React Flow nodes with port connections**
+- [x] **Step 2: Build node palette, drag-and-drop canvas, and property inspector**
+- [x] **Step 3: Wire WorkflowCanvas to WorkflowEngine with live step status updates**
+- [x] **Step 4: Implement pre-built workflow templates and run tests**
+- [x] **Step 5: Commit visual workflow studio**
 
 ---
 
