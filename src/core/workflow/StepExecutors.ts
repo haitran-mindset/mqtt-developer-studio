@@ -134,7 +134,7 @@ export class StepExecutors {
         }
       }, timeoutMs);
 
-      const unsub = adapter.onMessage((msg) => {
+      const unsub = adapter.onMessage((msg: any) => {
         if (resolved) return;
 
         // Check topic match
