@@ -13,8 +13,7 @@ import {
 import { useStudioStore, type StudioTab } from '../store/studioStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/core/db/StudioDatabase';
+import { useDataStore } from '@/core/store/dataStore';
 import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
 import { toast } from 'sonner';
 
@@ -29,7 +28,7 @@ export const StudioHeader: React.FC = () => {
     toggleBottomPanel,
   } = useStudioStore();
 
-  const profiles = useLiveQuery(() => db.connectionProfiles.toArray(), []) || [];
+  const profiles = useDataStore((state) => state.connectionProfiles);
   const activeProfile = profiles.find((p) => p.id === activeConnectionId) || profiles[0];
 
   // Set default active connection if none selected

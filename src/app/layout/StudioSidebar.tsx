@@ -14,8 +14,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useStudioStore } from '../store/studioStore';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/core/db/StudioDatabase';
+import { useDataStore } from '@/core/store/dataStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
@@ -44,15 +43,18 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
     setActiveWorkflowId,
   } = useStudioStore();
 
-  const profiles = useLiveQuery(() => db.connectionProfiles.toArray(), []) || [];
-  const publishPresets = useLiveQuery(() => db.publishPresets.toArray(), []) || [];
-  const workflows = useLiveQuery(() => db.workflows.toArray(), []) || [];
+  const profiles = useDataStore((state) => state.connectionProfiles);
+  const publishPresets = useDataStore((state) => state.publishPresets);
+  const workflows = useDataStore((state) => state.workflows);
+  const deleteConnectionProfile = useDataStore((state) => state.deleteConnectionProfile);
+  const addConnectionProfile = useDataStore((state) => state.addConnectionProfile);
+  const deleteWorkflow = useDataStore((state) => state.deleteWorkflow);
 
   const handleDeleteProfile = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (confirm('Are you sure you want to delete this broker profile?')) {
       await connectionManager.disconnect(id);
-      await db.connectionProfiles.delete(id);
+      deleteConnectionProfile(id);
       toast.success('Broker profile deleted');
     }
   };
@@ -67,14 +69,14 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
-    await db.connectionProfiles.add(cloned);
+    addConnectionProfile(cloned);
     toast.success('Broker profile cloned');
   };
 
   const handleDeleteWorkflow = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (confirm('Delete this workflow?')) {
-      await db.workflows.delete(id);
+      deleteWorkflow(id);
       toast.success('Workflow deleted');
     }
   };

@@ -21,7 +21,7 @@ import { useStudioStore } from '@/app/store/studioStore';
 import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
 import { variableInterpolator } from '@/core/template/VariableInterpolator';
 import { formatBytes } from '@/lib/utils';
-import { db } from '@/core/db/StudioDatabase';
+import { useDataStore } from '@/core/store/dataStore';
 import type { QoS, PayloadFormat, PublishPreset } from '@/core/db/types';
 import { VariableHelperModal } from './VariableHelperModal';
 import { toast } from 'sonner';
@@ -227,7 +227,7 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
       createdAt: Date.now(),
     };
 
-    await db.publishPresets.add(newPreset);
+    useDataStore.getState().addPublishPreset(newPreset);
     toast.success(`Preset "${name}" saved`);
   };
 

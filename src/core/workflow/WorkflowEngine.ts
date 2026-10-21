@@ -3,7 +3,7 @@ import type { WorkflowDefinition, WorkflowRunRecord, WorkflowStepRunLog } from '
 import type { WorkflowExecutionContext, StepExecutorContext } from './types';
 import { StepExecutors } from './StepExecutors';
 import { VariableInterpolator } from '../template/VariableInterpolator';
-import { db } from '../db/StudioDatabase';
+import { useDataStore } from '../store/dataStore';
 
 export type StepStatusCallback = (nodeId: string, status: 'idle' | 'running' | 'success' | 'failed', error?: string) => void;
 
@@ -161,11 +161,7 @@ export class WorkflowEngine {
       contextSnapshot: { ...this.context.variables },
     };
 
-    try {
-      await db.workflowRuns.add(runRecord);
-    } catch (e) {
-      console.warn('Failed to save workflow run record:', e);
-    }
+    useDataStore.getState().addWorkflowRun(runRecord);
 
     return runRecord;
   }

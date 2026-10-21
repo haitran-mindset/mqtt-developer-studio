@@ -19,9 +19,8 @@ import { WorkflowNodeInspector } from './WorkflowNodeInspector';
 import { WorkflowRunControls } from './WorkflowRunControls';
 import { WorkflowEngine } from '@/core/workflow/WorkflowEngine';
 import { useStudioStore } from '@/app/store/studioStore';
+import { useDataStore } from '@/core/store/dataStore';
 import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
-import { db } from '@/core/db/StudioDatabase';
-import { useLiveQuery } from 'dexie-react-hooks';
 import type { WorkflowDefinition } from '@/core/db/types';
 import type { WorkflowStepType } from '@/core/workflow/types';
 import { toast } from 'sonner';
@@ -39,7 +38,10 @@ export const WorkflowStudio: React.FC = () => {
     setActiveWorkflowId,
   } = useStudioStore();
 
-  const workflows = useLiveQuery(() => db.workflows.toArray(), []) || [];
+  const workflows = useDataStore((state) => state.workflows);
+  const addWorkflow = useDataStore((state) => state.addWorkflow);
+  const updateWorkflow = useDataStore((state) => state.updateWorkflow);
+
   const currentWorkflow =
     workflows.find((w) => w.id === activeWorkflowId) || workflows[0] || null;
 
@@ -156,7 +158,7 @@ export const WorkflowStudio: React.FC = () => {
   };
 
   // Save current workflow graph
-  const handleSaveWorkflow = async () => {
+  const handleSaveWorkflow = () => {
     if (!currentWorkflow) return;
 
     const updated: WorkflowDefinition = {
@@ -166,12 +168,12 @@ export const WorkflowStudio: React.FC = () => {
       updatedAt: Date.now(),
     };
 
-    await db.workflows.put(updated);
+    updateWorkflow(updated);
     toast.success(`Workflow "${updated.name}" saved!`);
   };
 
   // Create new blank workflow
-  const handleNewWorkflow = async () => {
+  const handleNewWorkflow = () => {
     const name = prompt('Enter workflow name:', 'New Automation Workflow');
     if (!name) return;
 
@@ -186,7 +188,7 @@ export const WorkflowStudio: React.FC = () => {
       updatedAt: Date.now(),
     };
 
-    await db.workflows.add(newWf);
+    addWorkflow(newWf);
     setActiveWorkflowId(newWf.id);
     toast.success(`Workflow "${name}" created!`);
   };

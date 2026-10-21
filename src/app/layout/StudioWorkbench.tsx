@@ -9,7 +9,6 @@ import { SubscriberView } from '@/features/subscriber/SubscriberView';
 import { WorkflowStudio } from '@/features/workflows/WorkflowStudio';
 import { useStudioStore } from '../store/studioStore';
 import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
-import { initializeSeedData } from '@/core/db/seedData';
 import type { ConnectionProfile, PublishPreset, StoredMessage } from '@/core/db/types';
 import { Toaster } from 'sonner';
 
@@ -27,9 +26,8 @@ export const StudioWorkbench: React.FC = () => {
   // Selected preset or republish message to populate into publisher
   const [activePublishPreset, setActivePublishPreset] = useState<PublishPreset | null>(null);
 
-  // Initialize seed data and wire listeners
+  // Wire listeners
   useEffect(() => {
-    initializeSeedData();
 
     // Listen to all connection status transitions
     const unsubStatus = connectionManager.onGlobalStatus((connId, status, error) => {

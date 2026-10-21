@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import type { ConnectionProfile, Protocol, MQTTVersion, QoS } from '@/core/db/types';
-import { db } from '@/core/db/StudioDatabase';
+import { useDataStore } from '@/core/store/dataStore';
 import { toast } from 'sonner';
 
 const connectionSchema = z.object({
@@ -169,8 +169,13 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         updatedAt: Date.now(),
       };
 
-      await db.connectionProfiles.put(profileData);
-      toast.success(profile ? 'Connection profile updated' : 'Connection profile created');
+      if (profile) {
+        useDataStore.getState().updateConnectionProfile(profileData);
+        toast.success('Connection profile updated');
+      } else {
+        useDataStore.getState().addConnectionProfile(profileData);
+        toast.success('Connection profile created');
+      }
       if (onSaved) onSaved(profileData);
       onOpenChange(false);
     } catch (err: any) {

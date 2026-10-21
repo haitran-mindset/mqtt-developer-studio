@@ -11,14 +11,12 @@ import {
   ShieldCheck,
   Zap,
 } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/core/db/StudioDatabase';
+import { useDataStore } from '@/core/store/dataStore';
 import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
 import { useStudioStore } from '@/app/store/studioStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { ConnectionProfile } from '@/core/db/types';
-import { initializeSeedData } from '@/core/db/seedData';
 import { toast } from 'sonner';
 
 interface ConnectionListProps {
@@ -36,7 +34,10 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
     connectionStatuses,
   } = useStudioStore();
 
-  const profiles = useLiveQuery(() => db.connectionProfiles.toArray(), []) || [];
+  const profiles = useDataStore((state) => state.connectionProfiles);
+  const addConnectionProfile = useDataStore((state) => state.addConnectionProfile);
+  const deleteConnectionProfile = useDataStore((state) => state.deleteConnectionProfile);
+  const resetToDefaults = useDataStore((state) => state.resetToDefaults);
 
   const handleToggleConnect = async (profile: ConnectionProfile) => {
     const status = connectionStatuses[profile.id]?.status || 'disconnected';
@@ -59,7 +60,7 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
   const handleDelete = async (id: string) => {
     if (confirm('Delete this broker profile?')) {
       await connectionManager.disconnect(id);
-      await db.connectionProfiles.delete(id);
+      deleteConnectionProfile(id);
       toast.success('Broker profile deleted');
     }
   };
@@ -73,12 +74,12 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
-    await db.connectionProfiles.add(cloned);
+    addConnectionProfile(cloned);
     toast.success('Broker profile cloned');
   };
 
-  const handleLoadDefaults = async () => {
-    await initializeSeedData();
+  const handleLoadDefaults = () => {
+    resetToDefaults();
     toast.success('Default public test brokers loaded');
   };
 

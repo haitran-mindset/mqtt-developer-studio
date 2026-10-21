@@ -1,6 +1,9 @@
-import { db } from './StudioDatabase';
-import type { ConnectionProfile, PublishPreset, SubscriptionPreset, WorkflowDefinition } from './types';
-import { v4 as uuidv4 } from 'uuid';
+import type {
+  ConnectionProfile,
+  PublishPreset,
+  SubscriptionPreset,
+  WorkflowDefinition,
+} from '../db/types';
 
 export const DEFAULT_BROKERS: ConnectionProfile[] = [
   {
@@ -116,7 +119,8 @@ export const DEFAULT_WORKFLOWS: WorkflowDefinition[] = [
   {
     id: 'workflow-rpc-request-response',
     name: 'Request / Response RPC Validation',
-    description: 'Subscribes to response topic, publishes command with correlation ID, waits for matching response, and validates payload.',
+    description:
+      'Subscribes to response topic, publishes command with correlation ID, waits for matching response, and validates payload.',
     variables: {
       deviceId: '126BA0',
     },
@@ -288,25 +292,3 @@ export const DEFAULT_WORKFLOWS: WorkflowDefinition[] = [
     updatedAt: Date.now(),
   },
 ];
-
-export async function initializeSeedData(): Promise<void> {
-  const profileCount = await db.connectionProfiles.count();
-  if (profileCount === 0) {
-    await db.connectionProfiles.bulkAdd(DEFAULT_BROKERS);
-  }
-
-  const presetCount = await db.publishPresets.count();
-  if (presetCount === 0) {
-    await db.publishPresets.bulkAdd(DEFAULT_PUBLISH_PRESETS);
-  }
-
-  const subPresetCount = await db.subscriptionPresets.count();
-  if (subPresetCount === 0) {
-    await db.subscriptionPresets.bulkAdd(DEFAULT_SUBSCRIPTION_PRESETS);
-  }
-
-  const workflowCount = await db.workflows.count();
-  if (workflowCount === 0) {
-    await db.workflows.bulkAdd(DEFAULT_WORKFLOWS);
-  }
-}

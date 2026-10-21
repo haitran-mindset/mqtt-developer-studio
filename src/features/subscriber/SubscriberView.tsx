@@ -16,8 +16,7 @@ import {
 } from 'lucide-react';
 import { useStudioStore } from '@/app/store/studioStore';
 import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
-import { db } from '@/core/db/StudioDatabase';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useDataStore } from '@/core/store/dataStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -56,19 +55,14 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
     : null;
   const subscriptions = activeAdapter ? Array.from(activeAdapter.getSubscriptions().values()) : [];
 
-  // Live messages from Dexie DB
-  const rawMessages =
-    useLiveQuery(
-      async (): Promise<StoredMessage[]> => {
-        if (!activeConnectionId) return [];
-        return await db.messageHistory
-          .where('connectionId')
-          .equals(activeConnectionId)
-          .reverse()
-          .sortBy('timestamp');
-      },
-      [activeConnectionId]
-    ) || [];
+  // In-memory messages from useDataStore
+  const allMessages = useDataStore((state) => state.messageHistory);
+  const clearConnectionMessages = useDataStore((state) => state.clearConnectionMessages);
+
+  const rawMessages = useMemo(() => {
+    if (!activeConnectionId) return [];
+    return allMessages.filter((m) => m.connectionId === activeConnectionId);
+  }, [allMessages, activeConnectionId]);
 
   // Freeze stream view if paused
   const [frozenMessages, setFrozenMessages] = useState<StoredMessage[]>([]);
@@ -125,9 +119,9 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
   };
 
   // Clear Messages
-  const handleClearMessages = async () => {
+  const handleClearMessages = () => {
     if (activeConnectionId) {
-      await db.clearConnectionMessages(activeConnectionId);
+      clearConnectionMessages(activeConnectionId);
       setSelectedMessage(null);
       toast.success('Messages cleared for this connection');
     }

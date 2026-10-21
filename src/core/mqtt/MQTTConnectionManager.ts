@@ -1,7 +1,7 @@
 import { MQTTClientAdapter, type StatusChangeCallback, type MessageCallback, type LogCallback } from './MQTTClientAdapter';
 import type { ConnectionProfile, StoredMessage, QoS } from '../db/types';
 import type { ConnectionStatus, MQTTMessageEvent, PublishOptions, ConnectionEventLog } from './types';
-import { db } from '../db/StudioDatabase';
+import { useDataStore } from '../store/dataStore';
 
 export class MQTTConnectionManager {
   private connections: Map<string, MQTTClientAdapter> = new Map();
@@ -52,7 +52,7 @@ export class MQTTConnectionManager {
         // Broadcast to listeners
         this.globalMessageListeners.forEach((cb) => cb(msg));
 
-        // Save incoming message to Dexie DB in background
+        // Save incoming message to in-memory store
         const stored: StoredMessage = {
           id: msg.id,
           connectionId: msg.connectionId,
@@ -71,12 +71,7 @@ export class MQTTConnectionManager {
           contentType: msg.properties?.contentType,
         };
 
-        try {
-          await db.messageHistory.add(stored);
-          await db.pruneOldMessages(1500);
-        } catch (e) {
-          console.warn('Failed to persist received message:', e);
-        }
+        useDataStore.getState().addMessage(stored);
       });
     }
 
@@ -109,7 +104,7 @@ export class MQTTConnectionManager {
 
     await adapter.publish(topic, payload, options);
 
-    // Save outgoing message to Dexie DB
+    // Save outgoing message to in-memory store
     const payloadStr = typeof payload === 'string' ? payload : new TextDecoder().decode(payload);
     const sizeBytes = typeof payload === 'string' ? new TextEncoder().encode(payload).byteLength : payload.byteLength;
 
@@ -129,11 +124,7 @@ export class MQTTConnectionManager {
       correlationData: options.properties?.correlationData,
     };
 
-    try {
-      await db.messageHistory.add(stored);
-    } catch (e) {
-      console.warn('Failed to persist sent message:', e);
-    }
+    useDataStore.getState().addMessage(stored);
   }
 
   private detectFormat(payload: string): 'json' | 'xml' | 'text' {
