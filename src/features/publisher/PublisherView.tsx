@@ -12,11 +12,34 @@ import {
   Eye,
   Check,
   Zap,
+  FolderOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useStudioStore } from '@/app/store/studioStore';
 import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
 import { variableInterpolator } from '@/core/template/VariableInterpolator';
@@ -24,6 +47,7 @@ import { formatBytes } from '@/lib/utils';
 import { useDataStore } from '@/core/store/dataStore';
 import type { QoS, PayloadFormat, PublishPreset } from '@/core/db/types';
 import { VariableHelperModal } from './VariableHelperModal';
+import { PromptDialog } from '@/components/ui/prompt-dialog';
 import { toast } from 'sonner';
 
 interface PublisherViewProps {
@@ -32,25 +56,13 @@ interface PublisherViewProps {
 
 export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) => {
   const { activeConnectionId, connectionStatuses } = useStudioStore();
+  const publishPresets = useDataStore((state) => state.publishPresets);
 
-  const [topic, setTopic] = useState('devices/sensor-01/telemetry');
+  const [topic, setTopic] = useState('');
   const [qos, setQos] = useState<QoS>(0);
   const [retain, setRetain] = useState(false);
   const [format, setFormat] = useState<PayloadFormat>('json');
-  const [payload, setPayload] = useState(
-    JSON.stringify(
-      {
-        deviceId: 'sensor-01',
-        timestamp: '{{timestamp}}',
-        temperature: '{{random_int(22, 34)}}',
-        humidity: '{{random_int(45, 80)}}',
-        sequence: '{{sequence}}',
-        status: 'online',
-      },
-      null,
-      2
-    )
-  );
+  const [payload, setPayload] = useState('');
 
   // Repeat & Interval
   const [isPublishingRepeat, setIsPublishingRepeat] = useState(false);
@@ -60,6 +72,7 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
 
   // Modals & UI helpers
   const [variableModalOpen, setVariableModalOpen] = useState(false);
+  const [savePresetDialogOpen, setSavePresetDialogOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [resolvedPreview, setResolvedPreview] = useState('');
   const [copied, setCopied] = useState(false);
@@ -173,6 +186,10 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
 
   // Format (Prettify) JSON
   const handleFormatJson = () => {
+    if (!payload.trim()) {
+      toast.info('Payload is empty');
+      return;
+    }
     try {
       const parsed = JSON.parse(payload);
       setPayload(JSON.stringify(parsed, null, 2));
@@ -184,6 +201,10 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
 
   // Minify JSON
   const handleMinifyJson = () => {
+    if (!payload.trim()) {
+      toast.info('Payload is empty');
+      return;
+    }
     try {
       const parsed = JSON.parse(payload);
       setPayload(JSON.stringify(parsed));
@@ -195,6 +216,10 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
 
   // Preview Resolved Payload
   const handleOpenPreview = () => {
+    if (!payload.trim()) {
+      toast.info('Payload is empty');
+      return;
+    }
     const res = variableInterpolator.interpolate(payload, {
       client_id: activeConnectionId || 'mqtt_client_preview',
     });
@@ -204,6 +229,10 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
 
   // Copy Payload
   const handleCopyPayload = () => {
+    if (!payload.trim()) {
+      toast.info('Payload is empty');
+      return;
+    }
     navigator.clipboard.writeText(payload);
     setCopied(true);
     toast.success('Payload copied to clipboard');
@@ -211,10 +240,11 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
   };
 
   // Save as Preset
-  const handleSaveAsPreset = async () => {
-    const name = prompt('Enter preset name:', `Preset: ${topic}`);
-    if (!name) return;
+  const handleSaveAsPreset = () => {
+    setSavePresetDialogOpen(true);
+  };
 
+  const handleConfirmSavePreset = (name: string) => {
     const newPreset: PublishPreset = {
       id: `preset-${Date.now()}`,
       name,
@@ -237,7 +267,7 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
       <div className="p-3 border-b border-zinc-800 bg-zinc-900/40 space-y-3">
         <div className="flex items-center gap-2">
           {/* Topic input */}
-          <div className="flex-1 flex items-center bg-zinc-900 border border-zinc-750 rounded-md px-2.5 py-0.5">
+          <div className="flex-1 flex items-center bg-zinc-900 border border-zinc-750 rounded-md px-2.5 py-0.5 focus-within:ring-1 focus-within:ring-cyan-500 focus-within:border-cyan-500">
             <span className="text-[11px] font-mono text-cyan-400 font-semibold mr-2 select-none">
               TOPIC:
             </span>
@@ -245,29 +275,32 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
               type="text"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="e.g. sensor/+/data or eonic/126BA0/command"
+              placeholder="Enter MQTT topic (e.g. factory/sensors/status or devices/command)"
               className="w-full bg-transparent text-xs font-mono text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
             />
           </div>
 
           {/* QoS Selector */}
-          <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-750 rounded-md px-2 py-1 text-xs">
-            <span className="text-[11px] text-zinc-400 select-none">QoS:</span>
-            <select
-              value={qos}
-              onChange={(e) => setQos(Number(e.target.value) as QoS)}
-              className="bg-transparent font-mono text-xs text-zinc-200 focus:outline-none cursor-pointer"
-            >
-              <option value={0}>0 - At most once</option>
-              <option value={1}>1 - At least once</option>
-              <option value={2}>2 - Exactly once</option>
-            </select>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[11px] text-zinc-400 font-medium select-none">QoS:</span>
+            <Select value={String(qos)} onValueChange={(val) => setQos(Number(val) as QoS)}>
+              <SelectTrigger className="w-[145px] h-8 text-xs font-mono">
+                <SelectValue placeholder="QoS" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">0 - At most once</SelectItem>
+                <SelectItem value="1">1 - At least once</SelectItem>
+                <SelectItem value="2">2 - Exactly once</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Retain Switch */}
-          <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-750 rounded-md px-2.5 py-1 text-xs">
-            <Switch checked={retain} onCheckedChange={setRetain} />
-            <span className="text-zinc-300 select-none text-[11px]">Retain</span>
+          <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-750 rounded-md px-2.5 h-8 text-xs shrink-0">
+            <Switch id="pub-retain" checked={retain} onCheckedChange={setRetain} />
+            <Label htmlFor="pub-retain" className="text-zinc-300 select-none text-[11px] cursor-pointer">
+              Retain
+            </Label>
           </div>
 
           {/* Publish Once Button */}
@@ -290,9 +323,9 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
                 <button
                   key={fmt}
                   onClick={() => setFormat(fmt)}
-                  className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors uppercase ${
+                  className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors uppercase cursor-pointer ${
                     format === fmt
-                      ? 'bg-zinc-800 text-cyan-400 font-semibold'
+                      ? 'bg-zinc-800 text-cyan-400 font-semibold shadow-sm'
                       : 'text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
@@ -361,36 +394,66 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
               variant="ghost"
               onClick={handleCopyPayload}
               className="h-6 text-[11px] text-zinc-400 hover:text-zinc-200"
+              title="Copy Payload"
             >
               {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
             </Button>
 
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleSaveAsPreset}
-              className="h-6 text-[11px] flex items-center gap-1 text-zinc-300"
-            >
-              <BookmarkPlus className="h-3 w-3" />
-              <span>Save Preset</span>
-            </Button>
+            {/* Presets Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-[11px] flex items-center gap-1 text-zinc-300"
+                >
+                  <FolderOpen className="h-3 w-3 text-cyan-400" />
+                  <span>Presets ({publishPresets.length})</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="text-xs">Publish Presets</DropdownMenuLabel>
+                <DropdownMenuItem onClick={handleSaveAsPreset} className="cursor-pointer">
+                  <BookmarkPlus className="h-3.5 w-3.5 mr-2 text-cyan-400" />
+                  <span>Save Current as Preset...</span>
+                </DropdownMenuItem>
+                {publishPresets.length > 0 && <DropdownMenuSeparator />}
+                {publishPresets.map((p) => (
+                  <DropdownMenuItem
+                    key={p.id}
+                    onClick={() => {
+                      setTopic(p.topic);
+                      setQos(p.qos);
+                      setRetain(p.retain);
+                      setFormat(p.format);
+                      setPayload(p.payload);
+                      toast.success(`Loaded preset "${p.name}"`);
+                    }}
+                    className="flex items-center justify-between cursor-pointer"
+                  >
+                    <span className="truncate">{p.name}</span>
+                    <span className="text-[10px] text-zinc-500 font-mono ml-2">QoS {p.qos}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Repeat publish controls */}
-            <div className="flex items-center gap-1 border-l border-zinc-800 pl-2">
+            <div className="flex items-center gap-1.5 border-l border-zinc-800 pl-2">
               <span className="text-[11px] text-zinc-400">Repeat:</span>
-              <input
+              <Input
                 type="number"
                 value={repeatCount}
                 onChange={(e) => setRepeatCount(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-12 h-6 px-1 rounded bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-zinc-200 text-center"
+                className="w-12 h-6 px-1 text-[11px] font-mono text-zinc-200 text-center"
                 title="Number of times"
               />
               <span className="text-[11px] text-zinc-400">every</span>
-              <input
+              <Input
                 type="number"
                 value={repeatIntervalMs}
                 onChange={(e) => setRepeatIntervalMs(Math.max(100, parseInt(e.target.value) || 1000))}
-                className="w-14 h-6 px-1 rounded bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-zinc-200 text-center"
+                className="w-16 h-6 px-1 text-[11px] font-mono text-zinc-200 text-center"
                 title="Interval in ms"
               />
               <span className="text-[11px] text-zinc-500">ms</span>
@@ -448,6 +511,19 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
         open={variableModalOpen}
         onOpenChange={setVariableModalOpen}
         onInsertVariable={handleInsertVariable}
+      />
+
+      {/* Save Preset Dialog */}
+      <PromptDialog
+        open={savePresetDialogOpen}
+        onOpenChange={setSavePresetDialogOpen}
+        title="Save Publish Preset"
+        description="Save your topic, QoS, retain flag, and payload format as a reusable preset."
+        label="Preset Name"
+        defaultValue={topic ? `Preset: ${topic}` : 'New Publish Preset'}
+        placeholder="e.g. Telemetry Heartbeat Preset"
+        confirmText="Save Preset"
+        onConfirm={handleConfirmSavePreset}
       />
 
       {/* Resolved Preview Drawer/Modal */}

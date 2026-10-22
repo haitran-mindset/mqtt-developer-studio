@@ -29,6 +29,7 @@ interface DataState {
   addConnectionProfile: (profile: ConnectionProfile) => void;
   updateConnectionProfile: (profile: ConnectionProfile) => void;
   deleteConnectionProfile: (id: string) => void;
+  clearAllConnectionProfiles: () => void;
 
   // Presets
   addPublishPreset: (preset: PublishPreset) => void;
@@ -77,6 +78,12 @@ export const useDataStore = create<DataState>((set) => ({
       connectionProfiles: state.connectionProfiles.filter((p) => p.id !== id),
       messageHistory: state.messageHistory.filter((m) => m.connectionId !== id),
     })),
+
+  clearAllConnectionProfiles: () =>
+    set({
+      connectionProfiles: [],
+      messageHistory: [],
+    }),
 
   // Presets
   addPublishPreset: (preset) =>

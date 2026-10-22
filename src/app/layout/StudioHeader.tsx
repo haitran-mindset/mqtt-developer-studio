@@ -13,6 +13,14 @@ import {
 import { useStudioStore, type StudioTab } from '../store/studioStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useDataStore } from '@/core/store/dataStore';
 import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
 import { toast } from 'sonner';
@@ -71,8 +79,13 @@ export const StudioHeader: React.FC = () => {
       {/* Brand & Title */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-            <Radio className="h-3.5 w-3.5 text-zinc-950 font-bold" />
+          <div className="h-6 w-6 rounded-md bg-gradient-to-br from-cyan-500/20 to-blue-500/10 border border-cyan-500/30 p-1 flex items-center justify-center shadow-lg shadow-cyan-500/10">
+            <svg role="img" viewBox="0 0 24 24" fill="none" className="w-4 h-4">
+              <path
+                fill="#22d3ee"
+                d="M10.657 23.994h-9.45A1.212 1.212 0 0 1 0 22.788v-9.18h.071c5.784 0 10.504 4.65 10.586 10.386Zm7.606 0h-4.045C14.135 16.246 7.795 9.977 0 9.942V6.038h.071c9.983 0 18.121 8.044 18.192 17.956Zm4.53 0h-.97C21.754 12.071 11.995 2.407 0 2.372v-1.16C0 .55.544.006 1.207.006h7.64C15.733 2.49 21.257 7.789 24 14.508v8.291c0 .663-.544 1.195-1.207 1.195ZM16.713.006h6.092A1.19 1.19 0 0 1 24 1.2v5.914c-.91-1.242-2.046-2.65-3.158-3.762C19.588 2.11 18.122.987 16.714.005Z"
+              />
+            </svg>
           </div>
           <span className="font-semibold text-xs tracking-wide bg-gradient-to-r from-zinc-100 via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
             MQTT <span className="text-cyan-400 font-bold">STUDIO</span>
@@ -83,23 +96,46 @@ export const StudioHeader: React.FC = () => {
         </div>
 
         {/* Separator */}
-        <div className="h-4 w-px bg-zinc-800 mx-1" />
+        <Separator orientation="vertical" className="h-5 mx-1" />
 
         {/* Active Broker Selector */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-zinc-900/90 border border-zinc-800 rounded-md px-2 py-1 text-xs">
-            <span className="text-[11px] text-zinc-400">Broker:</span>
-            <select
-              value={activeConnectionId || ''}
-              onChange={(e) => setActiveConnectionId(e.target.value)}
-              className="bg-transparent text-xs text-zinc-200 focus:outline-none cursor-pointer font-mono font-medium"
-            >
-              {profiles.map((p) => (
-                <option key={p.id} value={p.id} className="bg-zinc-900 text-zinc-100">
-                  {p.name} ({p.protocol.toUpperCase()})
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-zinc-400 font-medium">Broker:</span>
+            {profiles.length > 0 ? (
+              <Select
+                value={activeConnectionId || activeProfile?.id || ''}
+                onValueChange={(val) => setActiveConnectionId(val)}
+              >
+                <SelectTrigger className="h-7 min-w-[190px] max-w-[240px] text-xs font-sans">
+                  <SelectValue placeholder="Select broker..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {profiles.map((p) => {
+                    const isConn = connectionStatuses[p.id]?.status === 'connected';
+                    return (
+                      <SelectItem key={p.id} value={p.id} className="text-xs font-sans">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                              isConn
+                                ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]'
+                                : 'bg-zinc-600'
+                            }`}
+                          />
+                          <span className="truncate">{p.name}</span>
+                          <span className="text-[10px] text-cyan-400/80 font-mono shrink-0">
+                            ({p.protocol.toUpperCase()})
+                          </span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            ) : (
+              <span className="text-xs text-zinc-500 italic">No brokers</span>
+            )}
           </div>
 
           {/* Quick Connect / Disconnect button */}

@@ -14,19 +14,28 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { WorkflowCustomNode } from './nodes/WorkflowCustomNode';
+import { WorkflowDeletableEdge } from './edges/WorkflowDeletableEdge';
 import { WorkflowNodePalette } from './WorkflowNodePalette';
 import { WorkflowNodeInspector } from './WorkflowNodeInspector';
 import { WorkflowRunControls } from './WorkflowRunControls';
+import { PromptDialog } from '@/components/ui/prompt-dialog';
 import { WorkflowEngine } from '@/core/workflow/WorkflowEngine';
 import { useStudioStore } from '@/app/store/studioStore';
 import { useDataStore } from '@/core/store/dataStore';
 import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
 import type { WorkflowDefinition } from '@/core/db/types';
-import type { WorkflowStepType } from '@/core/workflow/types';
+import { WorkflowStepType } from '@/core/workflow/types';
+import { Button } from '@/components/ui/button';
+import { GitBranch, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 const nodeTypes = {
   workflowCustomNode: WorkflowCustomNode,
+};
+
+const edgeTypes = {
+  default: WorkflowDeletableEdge,
+  deletable: WorkflowDeletableEdge,
 };
 
 export const WorkflowStudio: React.FC = () => {
@@ -48,6 +57,7 @@ export const WorkflowStudio: React.FC = () => {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [newWorkflowDialogOpen, setNewWorkflowDialogOpen] = useState(false);
 
   const [isRunning, setIsRunning] = useState(false);
   const [statusText, setStatusText] = useState<string>('');
@@ -58,6 +68,10 @@ export const WorkflowStudio: React.FC = () => {
     if (currentWorkflow) {
       setNodes(currentWorkflow.nodes || []);
       setEdges(currentWorkflow.edges || []);
+      setSelectedNodeId(null);
+    } else {
+      setNodes([]);
+      setEdges([]);
       setSelectedNodeId(null);
     }
   }, [currentWorkflow?.id]);
@@ -79,7 +93,9 @@ export const WorkflowStudio: React.FC = () => {
         addEdge(
           {
             ...connection,
+            type: 'deletable',
             animated: true,
+            interactionWidth: 30,
             style: { stroke: '#06b6d4', strokeWidth: 2 },
           },
           eds
@@ -95,6 +111,12 @@ export const WorkflowStudio: React.FC = () => {
 
   // Add node from Palette
   const handleAddNode = (stepType: WorkflowStepType, label: string) => {
+    if (!currentWorkflow) {
+      toast.info('Please create a workflow first.');
+      setNewWorkflowDialogOpen(true);
+      return;
+    }
+
     const newNodeId = `node-${Date.now()}`;
     const newNode: Node = {
       id: newNodeId,
@@ -119,17 +141,17 @@ export const WorkflowStudio: React.FC = () => {
   const getDefaultConfigForStep = (type: WorkflowStepType): Record<string, any> => {
     switch (type) {
       case 'publish':
-        return { topic: 'eonic/device/command', payload: '{"cmd": "ping"}', qos: 0 };
+        return { topic: 'devices/device-01/command', payload: '{"cmd": "ping"}', qos: 0 };
       case 'subscribe':
-        return { topic: 'eonic/device/response', qos: 1 };
+        return { topic: 'devices/device-01/response', qos: 1 };
       case 'delay':
         return { delayMs: 1000 };
       case 'wait_for_message':
-        return { topic: 'eonic/device/response', timeoutMs: 5000 };
+        return { topic: 'devices/device-01/response', timeoutMs: 5000 };
       case 'validate_payload':
         return { assertionField: 'status', operator: 'equals', expectedValue: 'success' };
       case 'set_variable':
-        return { varName: 'deviceId', varValue: '126BA0' };
+        return { varName: 'deviceId', varValue: 'sensor-01' };
       case 'extract_variable':
         return { jsonPath: '$.status', varName: 'devStatus' };
       case 'condition':
@@ -174,9 +196,10 @@ export const WorkflowStudio: React.FC = () => {
 
   // Create new blank workflow
   const handleNewWorkflow = () => {
-    const name = prompt('Enter workflow name:', 'New Automation Workflow');
-    if (!name) return;
+    setNewWorkflowDialogOpen(true);
+  };
 
+  const handleConfirmNewWorkflow = (name: string) => {
     const newWf: WorkflowDefinition = {
       id: `workflow-${Date.now()}`,
       name,
@@ -305,6 +328,43 @@ export const WorkflowStudio: React.FC = () => {
 
         {/* Center: React Flow Canvas */}
         <div className="flex-1 h-full relative">
+          {/* Floating Quick Guide on Canvas */}
+          {currentWorkflow && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-zinc-900/90 border border-zinc-800 rounded-full px-4 py-1.5 shadow-xl backdrop-blur-md flex items-center gap-2.5 text-xs text-zinc-300 font-sans pointer-events-auto select-none">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+              </span>
+              <span>
+                <strong className="text-cyan-400">Connect:</strong> Drag bottom port to top port
+              </span>
+              <span className="text-zinc-600">•</span>
+              <span>
+                <strong className="text-rose-400">Remove wire:</strong> Click <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-zinc-800 border border-rose-500/50 text-rose-400 font-bold text-[10px] mx-0.5">✕</span> on the wire, or select it and press <kbd className="bg-zinc-800 border border-zinc-700 px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-300">Delete</kbd>
+              </span>
+            </div>
+          )}
+
+          {!currentWorkflow && (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-zinc-950/85 backdrop-blur-xs text-center p-6 select-none pointer-events-auto">
+              <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center mb-3 shadow-inner">
+                <GitBranch className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-semibold text-zinc-200 mb-1">No Active Workflow</h3>
+              <p className="text-xs text-zinc-400 max-w-sm mb-4 leading-relaxed">
+                Create a new automation workflow to orchestrate publish, subscribe, delay, and assertion steps.
+              </p>
+              <Button
+                size="sm"
+                onClick={handleNewWorkflow}
+                className="text-xs font-sans gap-1.5 shadow-md shadow-cyan-500/20 font-medium"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Create Workflow
+              </Button>
+            </div>
+          )}
+
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -313,8 +373,21 @@ export const WorkflowStudio: React.FC = () => {
             onConnect={onConnect}
             onNodeClick={onNodeClick}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            deleteKeyCode={['Backspace', 'Delete']}
             fitView
             className="bg-zinc-950"
+            defaultEdgeOptions={{
+              type: 'deletable',
+              animated: true,
+              interactionWidth: 30,
+              style: { stroke: '#06b6d4', strokeWidth: 2 },
+            }}
+            connectionLineStyle={{
+              stroke: '#22d3ee',
+              strokeWidth: 2.5,
+              strokeDasharray: '5,5',
+            }}
           >
             <Background color="#27272a" gap={16} size={1} />
             <Controls className="!bg-zinc-900 !border-zinc-800 !text-zinc-200 fill-zinc-200" />
@@ -331,6 +404,19 @@ export const WorkflowStudio: React.FC = () => {
           />
         )}
       </div>
+
+      {/* New Workflow Modal */}
+      <PromptDialog
+        open={newWorkflowDialogOpen}
+        onOpenChange={setNewWorkflowDialogOpen}
+        title="Create New Workflow"
+        description="Enter a descriptive name for your visual automation flow."
+        label="Workflow Name"
+        defaultValue="New Automation Workflow"
+        placeholder="e.g. Device Provisioning & Command Flow"
+        confirmText="Create Workflow"
+        onConfirm={handleConfirmNewWorkflow}
+      />
     </div>
   );
 };

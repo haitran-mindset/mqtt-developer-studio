@@ -18,6 +18,7 @@ import { useDataStore } from '@/core/store/dataStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { ConnectionProfile, PublishPreset, WorkflowDefinition } from '@/core/db/types';
 import { toast } from 'sonner';
 
@@ -50,13 +51,28 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
   const addConnectionProfile = useDataStore((state) => state.addConnectionProfile);
   const deleteWorkflow = useDataStore((state) => state.deleteWorkflow);
 
-  const handleDeleteProfile = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    if (confirm('Are you sure you want to delete this broker profile?')) {
-      await connectionManager.disconnect(id);
-      deleteConnectionProfile(id);
-      toast.success('Broker profile deleted');
+  const [deleteProfileId, setDeleteProfileId] = useState<string | null>(null);
+  const [deleteWorkflowTarget, setDeleteWorkflowTarget] = useState<WorkflowDefinition | null>(null);
+
+  const handleConfirmDeleteProfile = async () => {
+    if (!deleteProfileId) return;
+    await connectionManager.disconnect(deleteProfileId);
+    deleteConnectionProfile(deleteProfileId);
+    if (activeConnectionId === deleteProfileId) {
+      setActiveConnectionId(null);
     }
+    toast.success('Broker profile deleted');
+    setDeleteProfileId(null);
+  };
+
+  const handleConfirmDeleteWorkflow = () => {
+    if (!deleteWorkflowTarget) return;
+    deleteWorkflow(deleteWorkflowTarget.id);
+    if (activeWorkflowId === deleteWorkflowTarget.id) {
+      setActiveWorkflowId(null);
+    }
+    toast.success(`Workflow "${deleteWorkflowTarget.name}" deleted`);
+    setDeleteWorkflowTarget(null);
   };
 
   const handleDuplicateProfile = async (e: React.MouseEvent, p: ConnectionProfile) => {
@@ -71,14 +87,6 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
     };
     addConnectionProfile(cloned);
     toast.success('Broker profile cloned');
-  };
-
-  const handleDeleteWorkflow = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    if (confirm('Delete this workflow?')) {
-      deleteWorkflow(id);
-      toast.success('Workflow deleted');
-    }
   };
 
   return (
@@ -131,71 +139,82 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
         {/* Brokers view */}
         {activeTab === 'connections' && (
           <div className="space-y-1">
-            {profiles.map((profile) => {
-              const status = connectionStatuses[profile.id]?.status || 'disconnected';
-              const isSelected = activeConnectionId === profile.id;
+            {profiles.length === 0 ? (
+              <div className="p-4 text-center text-xs text-zinc-500 border border-dashed border-zinc-800/80 rounded-lg my-2 bg-zinc-900/20">
+                <Server className="h-5 w-5 text-zinc-600 mx-auto mb-2" />
+                <p className="font-medium text-zinc-400">No brokers yet</p>
+                <p className="text-[10px] text-zinc-600 mt-1">Click + Add to create your broker profile</p>
+              </div>
+            ) : (
+              profiles.map((profile) => {
+                const status = connectionStatuses[profile.id]?.status || 'disconnected';
+                const isSelected = activeConnectionId === profile.id;
 
-              return (
-                <div
-                  key={profile.id}
-                  onClick={() => setActiveConnectionId(profile.id)}
-                  className={`group relative p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
-                    isSelected
-                      ? 'bg-zinc-900/90 border-cyan-500/50 shadow-sm shadow-cyan-950/20'
-                      : 'bg-zinc-900/40 border-zinc-800/80 hover:bg-zinc-900/70 hover:border-zinc-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-zinc-100 truncate pr-2">
-                      {profile.name}
-                    </span>
-                    <Badge
-                      variant={
-                        status === 'connected'
-                          ? 'emerald'
-                          : status === 'connecting'
-                          ? 'amber'
-                          : 'outline'
-                      }
-                      className="text-[9px] py-0 px-1"
-                    >
-                      {status}
-                    </Badge>
-                  </div>
+                return (
+                  <div
+                    key={profile.id}
+                    onClick={() => setActiveConnectionId(profile.id)}
+                    className={`group relative p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
+                      isSelected
+                        ? 'bg-zinc-900/90 border-cyan-500/50 shadow-sm shadow-cyan-950/20'
+                        : 'bg-zinc-900/40 border-zinc-800/80 hover:bg-zinc-900/70 hover:border-zinc-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-zinc-100 truncate pr-2">
+                        {profile.name}
+                      </span>
+                      <Badge
+                        variant={
+                          status === 'connected'
+                            ? 'emerald'
+                            : status === 'connecting'
+                            ? 'amber'
+                            : 'outline'
+                        }
+                        className="text-[9px] py-0 px-1"
+                      >
+                        {status}
+                      </Badge>
+                    </div>
 
-                  <div className="text-[11px] font-mono text-zinc-400 truncate mb-1.5">
-                    {profile.protocol}://{profile.host}:{profile.port}{profile.path}
-                  </div>
+                    <div className="text-[11px] font-mono text-zinc-400 truncate mb-1.5">
+                      {profile.protocol}://{profile.host}:{profile.port}{profile.path}
+                    </div>
 
-                  <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono">
-                    <span>MQTT {profile.mqttVersion}</span>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => handleDuplicateProfile(e, profile)}
-                        className="p-1 hover:text-cyan-400 text-zinc-400"
-                        title="Duplicate Profile"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={() => onEditBrokerModal(profile)}
-                        className="p-1 hover:text-zinc-200 text-zinc-400"
-                        title="Edit Settings"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={(e) => handleDeleteProfile(e, profile.id)}
-                        className="p-1 hover:text-rose-400 text-zinc-400"
-                        title="Delete Profile"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
+                    <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono">
+                      <span>MQTT {profile.mqttVersion}</span>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => handleDuplicateProfile(e, profile)}
+                          className="p-1 hover:text-cyan-400 text-zinc-400"
+                          title="Duplicate Profile"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={() => onEditBrokerModal(profile)}
+                          className="p-1 hover:text-zinc-200 text-zinc-400"
+                          title="Edit Settings"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteProfileId(profile.id);
+                          }}
+                          className="p-1 hover:text-rose-400 text-zinc-400"
+                          title="Delete Profile"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         )}
 
@@ -235,8 +254,13 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
         {/* Workflows */}
         {activeTab === 'workflows' && (
           <div className="space-y-1">
-            {workflows.map((wf) => {
-              const isSelected = activeWorkflowId === wf.id;
+            {workflows.length === 0 ? (
+              <div className="p-4 text-center border border-dashed border-zinc-800 rounded-lg text-xs text-zinc-500 font-sans">
+                No workflows created yet. Click <span className="text-cyan-400 font-medium">+ New</span> in the studio toolbar to create one.
+              </div>
+            ) : (
+              workflows.map((wf) => {
+                const isSelected = activeWorkflowId === wf.id;
               return (
                 <div
                   key={wf.id}
@@ -253,8 +277,12 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-semibold text-zinc-100">{wf.name}</span>
                     <button
-                      onClick={(e) => handleDeleteWorkflow(e, wf.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteWorkflowTarget(wf);
+                      }}
                       className="opacity-0 group-hover:opacity-100 p-0.5 text-zinc-400 hover:text-rose-400 transition-opacity"
+                      title="Delete Workflow"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -271,7 +299,8 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
                   </div>
                 </div>
               );
-            })}
+            })
+          )}
           </div>
         )}
 
@@ -282,6 +311,28 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
           </div>
         )}
       </div>
+
+      {/* Delete Broker Confirmation */}
+      <ConfirmDialog
+        open={!!deleteProfileId}
+        onOpenChange={(open) => !open && setDeleteProfileId(null)}
+        title="Delete Broker Profile"
+        description="Are you sure you want to delete this broker profile? Any active connection will be closed immediately."
+        confirmText="Delete"
+        variant="destructive"
+        onConfirm={handleConfirmDeleteProfile}
+      />
+
+      {/* Delete Workflow Confirmation */}
+      <ConfirmDialog
+        open={!!deleteWorkflowTarget}
+        onOpenChange={(open) => !open && setDeleteWorkflowTarget(null)}
+        title="Delete Workflow"
+        description={`Are you sure you want to delete workflow "${deleteWorkflowTarget?.name}"? All steps and connections within it will be removed.`}
+        confirmText="Delete Workflow"
+        variant="destructive"
+        onConfirm={handleConfirmDeleteWorkflow}
+      />
     </aside>
   );
 };

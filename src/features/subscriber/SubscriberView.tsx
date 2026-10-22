@@ -20,6 +20,13 @@ import { useDataStore } from '@/core/store/dataStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { QoS, StoredMessage } from '@/core/db/types';
 import { format } from 'date-fns';
 import { formatBytes } from '@/lib/utils';
@@ -38,7 +45,7 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
     setIsPausedMessageStream,
   } = useStudioStore();
 
-  const [subTopic, setSubTopic] = useState('devices/+/telemetry');
+  const [subTopic, setSubTopic] = useState('');
   const [subQos, setSubQos] = useState<QoS>(0);
 
   // Search & Filtering
@@ -103,6 +110,7 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
     try {
       await activeAdapter?.subscribe(subTopic, subQos);
       toast.success(`Subscribed to ${subTopic}`);
+      setSubTopic('');
     } catch (err: any) {
       toast.error(`Subscription failed: ${err.message}`);
     }
@@ -142,10 +150,10 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-zinc-950">
       {/* Top Subscription Bar */}
-      <div className="p-3 border-b border-zinc-800 bg-zinc-900/40 space-y-2 select-none">
+      <div className="p-3 border-b border-zinc-800 bg-zinc-900/40 space-y-2.5 select-none">
         <div className="flex items-center gap-2">
           {/* Subscription topic input */}
-          <div className="flex-1 flex items-center bg-zinc-900 border border-zinc-750 rounded-md px-2.5 py-0.5">
+          <div className="flex-1 flex items-center bg-zinc-900 border border-zinc-750 rounded-md px-2.5 py-0.5 focus-within:ring-1 focus-within:ring-cyan-500 focus-within:border-cyan-500">
             <span className="text-[11px] font-mono text-cyan-400 font-semibold mr-2 select-none">
               SUB TOPIC:
             </span>
@@ -153,23 +161,24 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
               type="text"
               value={subTopic}
               onChange={(e) => setSubTopic(e.target.value)}
-              placeholder="e.g. devices/+/telemetry or eonic/#"
+              placeholder="Enter topic filter to subscribe (e.g. sensors/# or devices/+/status)"
               className="w-full bg-transparent text-xs font-mono text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
             />
           </div>
 
           {/* QoS selector */}
-          <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-750 rounded-md px-2 py-1 text-xs">
-            <span className="text-[11px] text-zinc-400 select-none">QoS:</span>
-            <select
-              value={subQos}
-              onChange={(e) => setSubQos(Number(e.target.value) as QoS)}
-              className="bg-transparent font-mono text-xs text-zinc-200 focus:outline-none cursor-pointer"
-            >
-              <option value={0}>0 - At most once</option>
-              <option value={1}>1 - At least once</option>
-              <option value={2}>2 - Exactly once</option>
-            </select>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[11px] text-zinc-400 font-medium select-none">QoS:</span>
+            <Select value={String(subQos)} onValueChange={(val) => setSubQos(Number(val) as QoS)}>
+              <SelectTrigger className="w-[145px] h-8 text-xs font-mono">
+                <SelectValue placeholder="QoS" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">0 - At most once</SelectItem>
+                <SelectItem value="1">1 - At least once</SelectItem>
+                <SelectItem value="2">2 - Exactly once</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Subscribe Button */}
@@ -192,26 +201,27 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
             </span>
           ) : (
             subscriptions.map((sub) => (
-              <div
+              <Badge
                 key={sub.topic}
-                className="flex items-center gap-1.5 bg-zinc-900 border border-cyan-900/60 text-cyan-400 rounded-md px-2 py-0.5 text-xs font-mono group"
+                variant="outline"
+                className="flex items-center gap-1.5 bg-zinc-900 border-cyan-900/60 text-cyan-400 py-1 px-2 text-xs font-mono group"
               >
-                <Radio className="h-2.5 w-2.5 animate-pulse" />
-                <span className="font-semibold">{sub.topic}</span>
-                <span className="text-[9px] bg-cyan-950 px-1 rounded text-cyan-300">
+                <Radio className="h-2.5 w-2.5 animate-pulse text-cyan-400" />
+                <span className="font-semibold text-zinc-100">{sub.topic}</span>
+                <span className="text-[9px] bg-cyan-950 px-1 py-0.5 rounded text-cyan-300">
                   QoS {sub.qos}
                 </span>
-                <span className="text-[9px] bg-zinc-800 px-1 rounded text-zinc-300">
+                <span className="text-[9px] bg-zinc-800 px-1 py-0.5 rounded text-zinc-300">
                   {sub.messageCount} msgs
                 </span>
                 <button
                   onClick={() => handleUnsubscribe(sub.topic)}
-                  className="hover:text-rose-400 ml-1"
+                  className="hover:text-rose-400 ml-1 cursor-pointer transition-colors"
                   title="Unsubscribe"
                 >
                   <X className="h-3 w-3" />
                 </button>
-              </div>
+              </Badge>
             ))
           )}
         </div>
@@ -223,24 +233,24 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
           {/* Topic search */}
           <div className="relative">
             <Search className="absolute left-2 top-2 h-3 w-3 text-zinc-500" />
-            <input
+            <Input
               type="text"
               placeholder="Filter by topic..."
               value={topicFilter}
               onChange={(e) => setTopicFilter(e.target.value)}
-              className="h-6 pl-7 pr-2 rounded bg-zinc-950 border border-zinc-800 text-[11px] font-mono text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-cyan-500 w-44"
+              className="h-7 pl-7 pr-2 rounded text-[11px] font-mono text-zinc-200 placeholder:text-zinc-500 w-48"
             />
           </div>
 
           {/* Payload search */}
           <div className="relative">
             <Search className="absolute left-2 top-2 h-3 w-3 text-zinc-500" />
-            <input
+            <Input
               type="text"
               placeholder="Search payload..."
               value={payloadFilter}
               onChange={(e) => setPayloadFilter(e.target.value)}
-              className="h-6 pl-7 pr-2 rounded bg-zinc-950 border border-zinc-800 text-[11px] font-mono text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-cyan-500 w-44"
+              className="h-7 pl-7 pr-2 rounded text-[11px] font-mono text-zinc-200 placeholder:text-zinc-500 w-48"
             />
           </div>
 
@@ -250,9 +260,9 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
               <button
                 key={dir}
                 onClick={() => setDirectionFilter(dir)}
-                className={`px-2 py-0.5 rounded text-[10px] uppercase font-mono transition-colors ${
+                className={`px-2.5 py-0.5 rounded text-[10px] uppercase font-mono transition-colors cursor-pointer ${
                   directionFilter === dir
-                    ? 'bg-zinc-800 text-cyan-400 font-semibold'
+                    ? 'bg-zinc-800 text-cyan-400 font-semibold shadow-sm'
                     : 'text-zinc-500 hover:text-zinc-300'
                 }`}
               >

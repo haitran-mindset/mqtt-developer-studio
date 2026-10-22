@@ -2,6 +2,15 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { WorkflowStepType } from '@/core/workflow/types';
 import { X, Sparkles, Trash2 } from 'lucide-react';
 
@@ -82,8 +91,8 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
       {/* Form Content */}
       <div className="p-3 space-y-3 font-sans text-xs flex-1">
         {/* Step Label */}
-        <div className="space-y-1">
-          <label className="text-[11px] font-medium text-zinc-300">Step Label</label>
+        <div className="space-y-1.5">
+          <Label className="text-[11px] font-medium text-zinc-300">Step Label</Label>
           <Input
             value={data.label || ''}
             onChange={(e) => handleUpdateLabel(e.target.value)}
@@ -94,46 +103,51 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
         {/* 1. Publish Step */}
         {stepType === 'publish' && (
           <div className="space-y-3 pt-2 border-t border-zinc-850">
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Target Topic</label>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Target Topic</Label>
               <Input
                 value={config.topic || ''}
                 onChange={(e) => handleUpdateConfig('topic', e.target.value)}
-                placeholder="e.g. eonic/{{deviceId}}/command"
+                placeholder="e.g. devices/{{deviceId}}/command"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <label className="text-[11px] font-medium text-zinc-300">QoS</label>
-                <select
-                  value={config.qos ?? 0}
-                  onChange={(e) => handleUpdateConfig('qos', Number(e.target.value))}
-                  className="w-full h-8 rounded bg-zinc-900 border border-zinc-750 px-2 font-mono text-xs text-zinc-200"
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-medium text-zinc-300">QoS</Label>
+                <Select
+                  value={String(config.qos ?? 0)}
+                  onValueChange={(val) => handleUpdateConfig('qos', Number(val))}
                 >
-                  <option value={0}>0</option>
-                  <option value={1}>1</option>
-                  <option value={2}>2</option>
-                </select>
+                  <SelectTrigger className="w-full h-8 text-xs font-mono">
+                    <SelectValue placeholder="QoS" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">0</SelectItem>
+                    <SelectItem value="1">1</SelectItem>
+                    <SelectItem value="2">2</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="flex items-center gap-2 pt-5">
+              <div className="flex items-center gap-2 pt-6">
                 <Switch
+                  id="wf-retain"
                   checked={!!config.retain}
                   onCheckedChange={(val) => handleUpdateConfig('retain', val)}
                 />
-                <span className="text-zinc-300">Retain</span>
+                <Label htmlFor="wf-retain" className="text-zinc-300 cursor-pointer">Retain</Label>
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Payload</label>
-              <textarea
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Payload</Label>
+              <Textarea
                 value={config.payload || ''}
                 onChange={(e) => handleUpdateConfig('payload', e.target.value)}
                 rows={5}
                 placeholder='{"cmd": "restart", "reqId": "{{uuid}}"}'
-                className="w-full rounded bg-zinc-900 border border-zinc-750 p-2 font-mono text-xs text-zinc-100 focus:outline-none focus:border-cyan-500"
+                className="w-full font-mono text-xs"
               />
             </div>
           </div>
@@ -142,26 +156,30 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
         {/* 2. Subscribe Step */}
         {stepType === 'subscribe' && (
           <div className="space-y-3 pt-2 border-t border-zinc-850">
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Subscription Topic</label>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Subscription Topic</Label>
               <Input
                 value={config.topic || ''}
                 onChange={(e) => handleUpdateConfig('topic', e.target.value)}
-                placeholder="e.g. eonic/+/response"
+                placeholder="e.g. devices/+/response"
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">QoS</label>
-              <select
-                value={config.qos ?? 0}
-                onChange={(e) => handleUpdateConfig('qos', Number(e.target.value))}
-                className="w-full h-8 rounded bg-zinc-900 border border-zinc-750 px-2 font-mono text-xs text-zinc-200"
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">QoS</Label>
+              <Select
+                value={String(config.qos ?? 0)}
+                onValueChange={(val) => handleUpdateConfig('qos', Number(val))}
               >
-                <option value={0}>0</option>
-                <option value={1}>1</option>
-                <option value={2}>2</option>
-              </select>
+                <SelectTrigger className="w-full h-8 text-xs font-mono">
+                  <SelectValue placeholder="QoS" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">0</SelectItem>
+                  <SelectItem value="1">1</SelectItem>
+                  <SelectItem value="2">2</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         )}
@@ -169,8 +187,8 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
         {/* 3. Delay Step */}
         {stepType === 'delay' && (
           <div className="space-y-3 pt-2 border-t border-zinc-850">
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Duration (ms)</label>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Duration (ms)</Label>
               <Input
                 type="number"
                 value={config.delayMs ?? 1000}
@@ -184,17 +202,17 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
         {/* 4. Wait for Message Step */}
         {stepType === 'wait_for_message' && (
           <div className="space-y-3 pt-2 border-t border-zinc-850">
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Listen Topic</label>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Listen Topic</Label>
               <Input
                 value={config.topic || ''}
                 onChange={(e) => handleUpdateConfig('topic', e.target.value)}
-                placeholder="e.g. eonic/{{deviceId}}/response"
+                placeholder="e.g. devices/{{deviceId}}/response"
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Timeout (ms)</label>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Timeout (ms)</Label>
               <Input
                 type="number"
                 value={config.timeoutMs ?? 5000}
@@ -203,10 +221,10 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">
                 Correlation Field (Optional)
-              </label>
+              </Label>
               <Input
                 value={config.correlationField || ''}
                 onChange={(e) => handleUpdateConfig('correlationField', e.target.value)}
@@ -214,10 +232,10 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">
                 Expected Correlation Value
-              </label>
+              </Label>
               <Input
                 value={config.correlationValue || ''}
                 onChange={(e) => handleUpdateConfig('correlationValue', e.target.value)}
@@ -230,8 +248,8 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
         {/* 5. Validate Payload */}
         {stepType === 'validate_payload' && (
           <div className="space-y-3 pt-2 border-t border-zinc-850">
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Assertion Field</label>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Assertion Field</Label>
               <Input
                 value={config.assertionField || ''}
                 onChange={(e) => handleUpdateConfig('assertionField', e.target.value)}
@@ -239,25 +257,29 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Operator</label>
-              <select
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Operator</Label>
+              <Select
                 value={config.operator || 'equals'}
-                onChange={(e) => handleUpdateConfig('operator', e.target.value)}
-                className="w-full h-8 rounded bg-zinc-900 border border-zinc-750 px-2 font-mono text-xs text-zinc-200"
+                onValueChange={(val) => handleUpdateConfig('operator', val)}
               >
-                <option value="equals">Equals (===)</option>
-                <option value="not_equals">Not Equals (!==)</option>
-                <option value="contains">Contains substring</option>
-                <option value="regex">Matches Regex</option>
-                <option value="gt">Greater Than (&gt;)</option>
-                <option value="lt">Less Than (&lt;)</option>
-                <option value="not_null">Not Null / Exists</option>
-              </select>
+                <SelectTrigger className="w-full h-8 text-xs font-mono">
+                  <SelectValue placeholder="Operator" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="equals">Equals (===)</SelectItem>
+                  <SelectItem value="not_equals">Not Equals (!==)</SelectItem>
+                  <SelectItem value="contains">Contains substring</SelectItem>
+                  <SelectItem value="regex">Matches Regex</SelectItem>
+                  <SelectItem value="gt">Greater Than (&gt;)</SelectItem>
+                  <SelectItem value="lt">Less Than (&lt;)</SelectItem>
+                  <SelectItem value="not_null">Not Null / Exists</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Expected Value</label>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Expected Value</Label>
               <Input
                 value={config.expectedValue || ''}
                 onChange={(e) => handleUpdateConfig('expectedValue', e.target.value)}
@@ -270,8 +292,8 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
         {/* 6. Set Variable */}
         {stepType === 'set_variable' && (
           <div className="space-y-3 pt-2 border-t border-zinc-850">
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Variable Name</label>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Variable Name</Label>
               <Input
                 value={config.varName || ''}
                 onChange={(e) => handleUpdateConfig('varName', e.target.value)}
@@ -279,12 +301,12 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Value Expression</label>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Value Expression</Label>
               <Input
                 value={config.varValue || ''}
                 onChange={(e) => handleUpdateConfig('varValue', e.target.value)}
-                placeholder="e.g. {{uuid}} or 126BA0"
+                placeholder="e.g. {{uuid}} or sensor-01"
               />
             </div>
           </div>
@@ -293,8 +315,8 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
         {/* 7. Extract Variable */}
         {stepType === 'extract_variable' && (
           <div className="space-y-3 pt-2 border-t border-zinc-850">
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">JSONPath Field</label>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">JSONPath Field</Label>
               <Input
                 value={config.jsonPath || ''}
                 onChange={(e) => handleUpdateConfig('jsonPath', e.target.value)}
@@ -302,8 +324,8 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Target Variable</label>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Target Variable</Label>
               <Input
                 value={config.varName || ''}
                 onChange={(e) => handleUpdateConfig('varName', e.target.value)}
@@ -316,10 +338,10 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
         {/* 8. Condition (IF/ELSE) */}
         {stepType === 'condition' && (
           <div className="space-y-3 pt-2 border-t border-zinc-850">
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">
                 Boolean Expression (JavaScript)
-              </label>
+              </Label>
               <Input
                 value={config.expression || ''}
                 onChange={(e) => handleUpdateConfig('expression', e.target.value)}
@@ -335,8 +357,8 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
         {/* 9. Loop */}
         {stepType === 'loop' && (
           <div className="space-y-3 pt-2 border-t border-zinc-850">
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Iterations (Count)</label>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Iterations (Count)</Label>
               <Input
                 type="number"
                 value={config.count ?? 5}
@@ -350,8 +372,8 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
         {/* 10. Log Message */}
         {stepType === 'log' && (
           <div className="space-y-3 pt-2 border-t border-zinc-850">
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Log Message</label>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Log Message</Label>
               <Input
                 value={config.message || ''}
                 onChange={(e) => handleUpdateConfig('message', e.target.value)}

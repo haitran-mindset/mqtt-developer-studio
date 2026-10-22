@@ -1,32 +1,51 @@
-import React, { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import React, { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { Dices } from 'lucide-react';
-import type { ConnectionProfile, Protocol, MQTTVersion, QoS } from '@/core/db/types';
-import { useDataStore } from '@/core/store/dataStore';
-import { toast } from 'sonner';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Dices } from "lucide-react";
+import type {
+  ConnectionProfile,
+  Protocol,
+  MQTTVersion,
+  QoS,
+} from "@/core/db/types";
+import { useDataStore } from "@/core/store/dataStore";
+import { toast } from "sonner";
 
 const connectionSchema = z.object({
-  name: z.string().min(1, 'Connection name is required'),
-  protocol: z.enum(['mqtt', 'mqtts', 'ws', 'wss']),
-  host: z.string().min(1, 'Host is required'),
+  name: z.string().min(1, "Connection name is required"),
+  protocol: z.enum(["mqtt", "mqtts", "ws", "wss"]),
+  host: z.string().min(1, "Host is required"),
   port: z.coerce.number().min(1).max(65535),
-  path: z.string().optional().default('/mqtt'),
-  clientId: z.string().min(1, 'Client ID is required'),
+  path: z.string().optional().default("/mqtt"),
+  clientId: z.string().min(1, "Client ID is required"),
   username: z.string().optional(),
   password: z.string().optional(),
-  mqttVersion: z.enum(['3.1.1', '5.0']),
+  mqttVersion: z.enum(["3.1.1", "5.0"]),
   clean: z.boolean(),
   keepalive: z.coerce.number().min(0).max(3600),
   connectTimeout: z.coerce.number().min(1000).max(60000),
@@ -65,31 +84,31 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
   } = useForm<FormValues>({
     resolver: zodResolver(connectionSchema),
     defaultValues: {
-      name: 'My MQTT Broker',
-      protocol: 'wss',
-      host: 'broker.emqx.io',
+      name: "My MQTT Broker",
+      protocol: "wss",
+      host: "broker.emqx.io",
       port: 8084,
-      path: '/mqtt',
+      path: "/mqtt",
       clientId: `mqtt_studio_${Math.random().toString(16).substring(2, 8)}`,
-      username: '',
-      password: '',
-      mqttVersion: '5.0',
+      username: "",
+      password: "",
+      mqttVersion: "5.0",
       clean: true,
       keepalive: 60,
       connectTimeout: 10000,
       reconnectPeriod: 4000,
       sessionExpiryInterval: 3600,
       lwtEnabled: false,
-      lwtTopic: '',
-      lwtPayload: '',
+      lwtTopic: "",
+      lwtPayload: "",
       lwtQos: 0,
       lwtRetain: false,
     },
   });
 
-  const protocol = watch('protocol');
-  const lwtEnabled = watch('lwtEnabled');
-  const mqttVersion = watch('mqttVersion');
+  const protocol = watch("protocol");
+  const lwtEnabled = watch("lwtEnabled");
+  const mqttVersion = watch("mqttVersion");
 
   useEffect(() => {
     if (profile) {
@@ -100,8 +119,8 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         port: profile.port,
         path: profile.path,
         clientId: profile.clientId,
-        username: profile.username || '',
-        password: profile.password || '',
+        username: profile.username || "",
+        password: profile.password || "",
         mqttVersion: profile.mqttVersion,
         clean: profile.clean,
         keepalive: profile.keepalive,
@@ -109,30 +128,30 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         reconnectPeriod: profile.reconnectPeriod,
         sessionExpiryInterval: profile.sessionExpiryInterval,
         lwtEnabled: !!profile.lwt?.enabled,
-        lwtTopic: profile.lwt?.topic || '',
-        lwtPayload: profile.lwt?.payload || '',
+        lwtTopic: profile.lwt?.topic || "",
+        lwtPayload: profile.lwt?.payload || "",
         lwtQos: profile.lwt?.qos || 0,
         lwtRetain: !!profile.lwt?.retain,
       });
     } else {
       reset({
-        name: 'New Broker Connection',
-        protocol: 'wss',
-        host: 'broker.emqx.io',
+        name: "",
+        protocol: "wss",
+        host: "",
         port: 8084,
-        path: '/mqtt',
+        path: "/mqtt",
         clientId: `mqtt_studio_${Math.random().toString(16).substring(2, 8)}`,
-        username: '',
-        password: '',
-        mqttVersion: '5.0',
+        username: "",
+        password: "",
+        mqttVersion: "5.0",
         clean: true,
         keepalive: 60,
         connectTimeout: 10000,
         reconnectPeriod: 4000,
         sessionExpiryInterval: 3600,
         lwtEnabled: false,
-        lwtTopic: '',
-        lwtPayload: '',
+        lwtTopic: "",
+        lwtPayload: "",
         lwtQos: 0,
         lwtRetain: false,
       });
@@ -160,8 +179,8 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         lwt: values.lwtEnabled
           ? {
               enabled: true,
-              topic: values.lwtTopic || 'device/status',
-              payload: values.lwtPayload || 'offline',
+              topic: values.lwtTopic || "device/status",
+              payload: values.lwtPayload || "offline",
               qos: (values.lwtQos as QoS) || 0,
               retain: !!values.lwtRetain,
             }
@@ -172,10 +191,10 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
 
       if (profile) {
         useDataStore.getState().updateConnectionProfile(profileData);
-        toast.success('Connection profile updated');
+        toast.success("Connection profile updated");
       } else {
         useDataStore.getState().addConnectionProfile(profileData);
-        toast.success('Connection profile created');
+        toast.success("Connection profile created");
       }
       if (onSaved) onSaved(profileData);
       onOpenChange(false);
@@ -186,8 +205,8 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
 
   const handleRandomClientId = () => {
     const randId = `mqtt_studio_${Math.random().toString(16).substring(2, 10)}`;
-    setValue('clientId', randId, { shouldValidate: true });
-    toast.success('Generated random Client ID');
+    setValue("clientId", randId, { shouldValidate: true });
+    toast.success("Generated random Client ID");
   };
 
   return (
@@ -195,25 +214,41 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-zinc-950 border-zinc-800 text-zinc-100">
         <DialogHeader>
           <DialogTitle className="text-sm font-semibold flex items-center gap-2">
-            <span>{profile ? 'Edit Connection Profile' : 'New MQTT Broker Connection'}</span>
+            <span>
+              {profile
+                ? "Edit Connection Profile"
+                : "New MQTT Broker Connection"}
+            </span>
           </DialogTitle>
           <DialogDescription className="text-xs text-zinc-400">
-            Configure broker connection parameters across mqtt://, mqtts://, ws://, or wss:// endpoints.
+            Configure broker connection parameters across mqtt://, mqtts://,
+            ws://, or wss:// endpoints.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-xs font-sans mt-2">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-4 text-xs font-sans mt-2"
+        >
           {/* Section: General */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Profile Name</label>
-              <Input {...register('name')} placeholder="e.g. EMQX Production" />
-              {errors.name && <span className="text-rose-400 text-[10px]">{errors.name.message}</span>}
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">
+                Profile Name
+              </Label>
+              <Input {...register("name")} placeholder="e.g. EMQX Production" />
+              {errors.name && (
+                <span className="text-rose-400 text-[10px]">
+                  {errors.name.message}
+                </span>
+              )}
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-medium text-zinc-300">Client ID</label>
+                <Label className="text-[11px] font-medium text-zinc-300">
+                  Client ID
+                </Label>
                 <button
                   type="button"
                   onClick={handleRandomClientId}
@@ -225,114 +260,195 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                 </button>
               </div>
               <div className="relative flex items-center">
-                <Input {...register('clientId')} placeholder="client id" className="pr-8" />
-                <button
-                  type="button"
-                  onClick={handleRandomClientId}
-                  className="absolute right-1.5 p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-cyan-400 transition-colors cursor-pointer"
-                  title="Generate random Client ID"
-                >
-                  <Dices className="h-3.5 w-3.5" />
-                </button>
+                <Input
+                  {...register("clientId")}
+                  placeholder="client id"
+                  className="pr-8"
+                />
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={handleRandomClientId}
+                        className="absolute right-1.5 p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-cyan-400 transition-colors cursor-pointer"
+                      >
+                        <Dices className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Generate random Client ID</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
-              {errors.clientId && <span className="text-rose-400 text-[10px]">{errors.clientId.message}</span>}
+              {errors.clientId && (
+                <span className="text-rose-400 text-[10px]">
+                  {errors.clientId.message}
+                </span>
+              )}
             </div>
           </div>
 
           {/* Section: Host, Protocol & Port */}
           <div className="grid grid-cols-12 gap-3">
-            <div className="col-span-3 space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Protocol</label>
-              <select
-                {...register('protocol')}
-                onChange={(e) => {
-                  const p = e.target.value as Protocol;
-                  setValue('protocol', p);
-                  if (p === 'mqtt') {
-                    setValue('port', 1883);
-                    setValue('path', '');
-                  } else if (p === 'mqtts') {
-                    setValue('port', 8883);
-                    setValue('path', '');
-                  } else if (p === 'ws') {
-                    setValue('port', 8083);
-                    setValue('path', '/mqtt');
-                  } else if (p === 'wss') {
-                    setValue('port', 8084);
-                    setValue('path', '/mqtt');
+            <div className="col-span-3 space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">
+                Protocol
+              </Label>
+              <Select
+                value={protocol}
+                onValueChange={(val) => {
+                  const p = val as Protocol;
+                  setValue("protocol", p);
+                  if (p === "mqtt") {
+                    setValue("port", 1883);
+                    setValue("path", "");
+                  } else if (p === "mqtts") {
+                    setValue("port", 8883);
+                    setValue("path", "");
+                  } else if (p === "ws") {
+                    setValue("port", 8083);
+                    setValue("path", "/mqtt");
+                  } else if (p === "wss") {
+                    setValue("port", 8084);
+                    setValue("path", "/mqtt");
                   }
                 }}
-                className="w-full h-8 rounded-md border border-zinc-750 bg-zinc-900 px-2 text-xs font-mono text-zinc-200 focus:outline-none focus:border-cyan-500 cursor-pointer"
               >
-                <option value="mqtt">mqtt:// (TCP)</option>
-                <option value="mqtts">mqtts:// (TLS/SSL)</option>
-                <option value="ws">ws:// (WebSocket)</option>
-                <option value="wss">wss:// (WebSocket Secure)</option>
-              </select>
+                <SelectTrigger className="w-full h-8">
+                  <SelectValue placeholder="Protocol" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mqtt">mqtt:// (TCP)</SelectItem>
+                  <SelectItem value="mqtts">mqtts:// (TLS)</SelectItem>
+                  <SelectItem value="ws">ws:// (WS)</SelectItem>
+                  <SelectItem value="wss">wss:// (WSS)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="col-span-5 space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Broker Hostname</label>
-              <Input {...register('host')} placeholder="broker.emqx.io" />
-              {errors.host && <span className="text-rose-400 text-[10px]">{errors.host.message}</span>}
+            <div className="col-span-5 space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">
+                Broker Hostname
+              </Label>
+              <Input {...register("host")} placeholder="broker.emqx.io" />
+              {errors.host && (
+                <span className="text-rose-400 text-[10px]">
+                  {errors.host.message}
+                </span>
+              )}
             </div>
 
-            <div className="col-span-2 space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Port</label>
-              <Input type="number" {...register('port')} placeholder="8084" />
+            <div className="col-span-2 space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">
+                Port
+              </Label>
+              <Input type="number" {...register("port")} placeholder="8084" />
             </div>
 
-            <div className="col-span-2 space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Path</label>
-              <Input {...register('path')} placeholder={protocol === 'ws' || protocol === 'wss' ? '/mqtt' : ''} />
+            <div className="col-span-2 space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">
+                Path
+              </Label>
+              <Input
+                {...register("path")}
+                placeholder={
+                  protocol === "ws" || protocol === "wss" ? "/mqtt" : ""
+                }
+              />
             </div>
 
-            {(protocol === 'mqtt' || protocol === 'mqtts') && (
-              <div className="col-span-12 text-[10px] text-amber-400/90 bg-amber-950/30 border border-amber-800/40 rounded px-2.5 py-1.5 font-mono">
-                💡 Lưu ý: Trình duyệt web kết nối trực tiếp đến <strong className="text-amber-300">mqtt://</strong> hoặc <strong className="text-amber-300">mqtts://</strong> thông qua WebSocket proxy/bridge. Đối với broker public thông thường, hãy sử dụng cổng WebSocket: <strong className="text-cyan-400">ws://</strong> (port 8083) hoặc <strong className="text-cyan-400">wss://</strong> (port 8084).
+            {(protocol === "mqtt" || protocol === "mqtts") && (
+              <div className="col-span-12 flex items-center justify-between gap-3 text-[11px] text-amber-300 bg-amber-950/40 border border-amber-800/60 rounded-md p-2.5">
+                <div className="leading-relaxed">
+                  <strong className="text-amber-200">Browser Notice:</strong>{" "}
+                  Web browsers cannot connect to raw TCP socket (
+                  <span className="font-mono">{protocol}://</span>). For secure
+                  encrypted connections in the browser, please use{" "}
+                  <strong className="text-cyan-400 font-mono">wss://</strong>{" "}
+                  (usually port 8084, path /mqtt).
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setValue("protocol", "wss");
+                    setValue("port", 8084);
+                    setValue("path", "/mqtt");
+                  }}
+                  className="h-7 text-[10px] border-cyan-500/50 hover:bg-cyan-950/50 text-cyan-300 shrink-0 shadow-sm"
+                >
+                  Switch to wss://
+                </Button>
               </div>
             )}
           </div>
 
           {/* Section: Authentication */}
           <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-850">
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Username (Optional)</label>
-              <Input {...register('username')} placeholder="Optional username" />
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">
+                Username (Optional)
+              </Label>
+              <Input
+                {...register("username")}
+                placeholder="Optional username"
+              />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Password (Optional)</label>
-              <Input type="password" {...register('password')} placeholder="••••••••" />
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">
+                Password (Optional)
+              </Label>
+              <Input
+                type="password"
+                {...register("password")}
+                placeholder="••••••••"
+              />
             </div>
           </div>
 
           {/* Section: Protocol Details */}
           <div className="grid grid-cols-4 gap-3 pt-2 border-t border-zinc-850">
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">MQTT Version</label>
-              <select
-                {...register('mqttVersion')}
-                className="w-full h-8 rounded-md border border-zinc-750 bg-zinc-900 px-2 text-xs font-mono text-zinc-200 focus:outline-none focus:border-cyan-500"
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">
+                MQTT Version
+              </Label>
+              <Select
+                value={mqttVersion}
+                onValueChange={(val) =>
+                  setValue("mqttVersion", val as MQTTVersion)
+                }
               >
-                <option value="5.0">MQTT 5.0</option>
-                <option value="3.1.1">MQTT 3.1.1</option>
-              </select>
+                <SelectTrigger className="w-full h-8">
+                  <SelectValue placeholder="Version" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5.0">MQTT 5.0</SelectItem>
+                  <SelectItem value="3.1.1">MQTT 3.1.1</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Keep Alive (s)</label>
-              <Input type="number" {...register('keepalive')} />
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">
+                Keep Alive (s)
+              </Label>
+              <Input type="number" {...register("keepalive")} />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Timeout (ms)</label>
-              <Input type="number" {...register('connectTimeout')} />
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">
+                Timeout (ms)
+              </Label>
+              <Input type="number" {...register("connectTimeout")} />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-zinc-300">Reconnect (ms)</label>
-              <Input type="number" {...register('reconnectPeriod')} />
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">
+                Reconnect (ms)
+              </Label>
+              <Input type="number" {...register("reconnectPeriod")} />
             </div>
           </div>
 
@@ -340,15 +456,15 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
           <div className="flex items-center justify-between py-1 border-t border-zinc-850">
             <div>
               <span className="text-xs font-medium text-zinc-200">
-                {mqttVersion === '5.0' ? 'Clean Start' : 'Clean Session'}
+                {mqttVersion === "5.0" ? "Clean Start" : "Clean Session"}
               </span>
               <p className="text-[10px] text-zinc-500">
                 Discard previous session state on connecting
               </p>
             </div>
             <Switch
-              checked={watch('clean')}
-              onCheckedChange={(checked) => setValue('clean', checked)}
+              checked={watch("clean")}
+              onCheckedChange={(checked) => setValue("clean", checked)}
             />
           </div>
 
@@ -360,45 +476,67 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                   Last Will & Testament (LWT)
                 </span>
                 <p className="text-[10px] text-zinc-500">
-                  Broker publishes this message if client disconnects ungracefully
+                  Broker publishes this message if client disconnects
+                  ungracefully
                 </p>
               </div>
               <Switch
                 checked={lwtEnabled}
-                onCheckedChange={(checked) => setValue('lwtEnabled', checked)}
+                onCheckedChange={(checked) => setValue("lwtEnabled", checked)}
               />
             </div>
 
             {lwtEnabled && (
               <div className="grid grid-cols-12 gap-3 p-3 bg-zinc-900/60 rounded-md border border-zinc-800">
-                <div className="col-span-6 space-y-1">
-                  <label className="text-[10px] font-mono text-zinc-400">LWT Topic</label>
-                  <Input {...register('lwtTopic')} placeholder="device/status" />
-                </div>
-
-                <div className="col-span-3 space-y-1">
-                  <label className="text-[10px] font-mono text-zinc-400">LWT QoS</label>
-                  <select
-                    {...register('lwtQos')}
-                    className="w-full h-8 rounded-md border border-zinc-750 bg-zinc-900 px-2 text-xs font-mono text-zinc-200"
-                  >
-                    <option value="0">0 - At most once</option>
-                    <option value="1">1 - At least once</option>
-                    <option value="2">2 - Exactly once</option>
-                  </select>
-                </div>
-
-                <div className="col-span-3 flex items-center gap-2 pt-5">
-                  <Switch
-                    checked={watch('lwtRetain')}
-                    onCheckedChange={(val) => setValue('lwtRetain', val)}
+                <div className="col-span-6 space-y-1.5">
+                  <Label className="text-[10px] font-mono text-zinc-400">
+                    LWT Topic
+                  </Label>
+                  <Input
+                    {...register("lwtTopic")}
+                    placeholder="device/status"
                   />
-                  <span className="text-[11px] text-zinc-300">Retain</span>
                 </div>
 
-                <div className="col-span-12 space-y-1">
-                  <label className="text-[10px] font-mono text-zinc-400">LWT Payload</label>
-                  <Input {...register('lwtPayload')} placeholder='{"status": "offline"}' />
+                <div className="col-span-3 space-y-1.5">
+                  <Label className="text-[10px] font-mono text-zinc-400">
+                    LWT QoS
+                  </Label>
+                  <Select
+                    value={String(watch("lwtQos") ?? 0)}
+                    onValueChange={(val) =>
+                      setValue("lwtQos", Number(val) as QoS)
+                    }
+                  >
+                    <SelectTrigger className="w-full h-8">
+                      <SelectValue placeholder="QoS" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">0 - At most once</SelectItem>
+                      <SelectItem value="1">1 - At least once</SelectItem>
+                      <SelectItem value="2">2 - Exactly once</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="col-span-3 flex items-center gap-2 pt-6">
+                  <Switch
+                    checked={watch("lwtRetain")}
+                    onCheckedChange={(val) => setValue("lwtRetain", val)}
+                  />
+                  <Label className="text-[11px] text-zinc-300 cursor-pointer">
+                    Retain
+                  </Label>
+                </div>
+
+                <div className="col-span-12 space-y-1.5">
+                  <Label className="text-[10px] font-mono text-zinc-400">
+                    LWT Payload
+                  </Label>
+                  <Input
+                    {...register("lwtPayload")}
+                    placeholder='{"status": "offline"}'
+                  />
                 </div>
               </div>
             )}
@@ -413,8 +551,12 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting} className="font-semibold">
-              {profile ? 'Save Changes' : 'Create Profile'}
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="font-semibold"
+            >
+              {profile ? "Save Changes" : "Create Profile"}
             </Button>
           </div>
         </form>

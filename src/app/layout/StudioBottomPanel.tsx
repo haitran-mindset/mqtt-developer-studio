@@ -13,6 +13,7 @@ import {
 import { useStudioStore, type BottomPanelTab } from '../store/studioStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { formatBytes } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -121,12 +122,12 @@ export const StudioBottomPanel: React.FC = () => {
             <>
               <div className="relative">
                 <Search className="absolute left-1.5 top-1.5 h-3 w-3 text-zinc-500" />
-                <input
+                <Input
                   type="text"
                   placeholder="Filter logs..."
                   value={logFilter}
                   onChange={(e) => setLogFilter(e.target.value)}
-                  className="h-6 pl-6 pr-2 rounded bg-zinc-900 border border-zinc-800 text-[11px] text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-cyan-500"
+                  className="h-6 pl-6 pr-2 rounded text-[11px] font-mono text-zinc-200 placeholder:text-zinc-500 w-40"
                 />
               </div>
 

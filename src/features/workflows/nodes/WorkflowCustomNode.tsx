@@ -72,11 +72,12 @@ export const WorkflowCustomNode = memo(({ data, selected }: NodeProps) => {
     <div
       className={`w-64 rounded-xl border ${statusBorder} ${statusBg} p-3 text-xs shadow-xl transition-all font-sans relative backdrop-blur-md`}
     >
-      {/* Top Input Handle */}
+      {/* Top Input Handle (Target / Incoming Connection) */}
       <Handle
         type="target"
         position={Position.Top}
-        className="w-2.5 h-2.5 bg-zinc-500 border border-zinc-950 !top-[-5px]"
+        className="!w-3.5 !h-3.5 !bg-cyan-400 !border-2 !border-zinc-950 shadow-[0_0_10px_rgba(34,211,238,0.9)] cursor-crosshair hover:!scale-150 transition-transform !top-[-7px]"
+        title="Input (Receive connection from previous step)"
       />
 
       {/* Node Header */}
@@ -117,55 +118,62 @@ export const WorkflowCustomNode = memo(({ data, selected }: NodeProps) => {
         </div>
       )}
 
-      {/* Output Handles */}
+      {/* Output Handles (Source / Connect to next step) */}
       {stepType === 'condition' ? (
-        <div className="flex justify-between mt-2 pt-1 border-t border-zinc-850 text-[10px] font-mono">
-          <div className="relative">
-            <span className="text-emerald-400">TRUE</span>
+        <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-zinc-850 text-[10px] font-mono px-1">
+          <div className="relative flex items-center gap-1">
+            <span className="text-emerald-400 font-bold">TRUE</span>
             <Handle
               type="source"
               position={Position.Bottom}
               id="true"
-              className="w-2.5 h-2.5 bg-emerald-500 border border-zinc-950 !bottom-[-5px] left-3"
+              className="!w-3.5 !h-3.5 !bg-emerald-400 !border-2 !border-zinc-950 shadow-[0_0_10px_rgba(52,211,153,0.9)] cursor-crosshair hover:!scale-150 transition-transform !bottom-[-7px] left-3"
+              title="Connect when condition is TRUE"
             />
           </div>
-          <div className="relative">
-            <span className="text-rose-400">FALSE</span>
+          <div className="relative flex items-center gap-1">
+            <span className="text-rose-400 font-bold">FALSE</span>
             <Handle
               type="source"
               position={Position.Bottom}
               id="false"
-              className="w-2.5 h-2.5 bg-rose-500 border border-zinc-950 !bottom-[-5px] right-3"
+              className="!w-3.5 !h-3.5 !bg-rose-400 !border-2 !border-zinc-950 shadow-[0_0_10px_rgba(244,63,94,0.9)] cursor-crosshair hover:!scale-150 transition-transform !bottom-[-7px] right-3"
+              title="Connect when condition is FALSE"
             />
           </div>
         </div>
       ) : stepType === 'loop' ? (
-        <div className="flex justify-between mt-2 pt-1 border-t border-zinc-850 text-[10px] font-mono">
-          <div className="relative">
-            <span className="text-indigo-400">BODY</span>
+        <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-zinc-850 text-[10px] font-mono px-1">
+          <div className="relative flex items-center gap-1">
+            <span className="text-indigo-400 font-bold">BODY</span>
             <Handle
               type="source"
               position={Position.Bottom}
               id="loop_body"
-              className="w-2.5 h-2.5 bg-indigo-500 border border-zinc-950 !bottom-[-5px] left-3"
+              className="!w-3.5 !h-3.5 !bg-indigo-400 !border-2 !border-zinc-950 shadow-[0_0_10px_rgba(129,140,248,0.9)] cursor-crosshair hover:!scale-150 transition-transform !bottom-[-7px] left-4"
+              title="Loop body (repeated steps)"
             />
           </div>
-          <div className="relative">
-            <span className="text-zinc-400">DONE</span>
+          <div className="relative flex items-center gap-1">
+            <span className="text-zinc-400 font-bold">DONE</span>
             <Handle
               type="source"
               position={Position.Bottom}
               id="loop_end"
-              className="w-2.5 h-2.5 bg-zinc-500 border border-zinc-950 !bottom-[-5px] right-3"
+              className="!w-3.5 !h-3.5 !bg-zinc-400 !border-2 !border-zinc-950 shadow-[0_0_10px_rgba(161,161,170,0.9)] cursor-crosshair hover:!scale-150 transition-transform !bottom-[-7px] right-4"
+              title="Loop completed"
             />
           </div>
         </div>
       ) : stepType !== 'stop' && stepType !== 'fail' ? (
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          className="w-2.5 h-2.5 bg-cyan-500 border border-zinc-950 !bottom-[-5px]"
-        />
+        <div className="relative mt-1">
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            className="!w-3.5 !h-3.5 !bg-cyan-400 !border-2 !border-zinc-950 shadow-[0_0_10px_rgba(34,211,238,0.9)] cursor-crosshair hover:!scale-150 transition-transform !bottom-[-7px]"
+            title="Drag from here to connect to the next step"
+          />
+        </div>
       ) : null}
     </div>
   );

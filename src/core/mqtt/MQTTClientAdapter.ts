@@ -1,4 +1,5 @@
 import mqtt, { type MqttClient, type IClientOptions } from 'mqtt';
+import { Buffer } from 'buffer';
 import { v4 as uuidv4 } from 'uuid';
 import type { ConnectionProfile, QoS } from '../db/types';
 import type {
@@ -80,6 +81,15 @@ export class MQTTClientAdapter {
   async connect(): Promise<void> {
     if (this.client) {
       await this.disconnect();
+    }
+
+    if (typeof window !== 'undefined' && (this.profile.protocol === 'mqtt' || this.profile.protocol === 'mqtts')) {
+      const suggestedProtocol = this.profile.protocol === 'mqtts' ? 'wss' : 'ws';
+      const suggestedPort = this.profile.protocol === 'mqtts' ? 8084 : 8083;
+      const errorMsg = `Web browsers cannot connect to raw TCP socket '${this.profile.protocol}://${this.profile.host}:${this.profile.port}'. Please switch Protocol to '${suggestedProtocol}://' (usually port ${suggestedPort}, path '/mqtt').`;
+      this.setStatus('error', errorMsg);
+      this.addLog('error', errorMsg);
+      throw new Error(errorMsg);
     }
 
     const isWs = this.profile.protocol === 'ws' || this.profile.protocol === 'wss';

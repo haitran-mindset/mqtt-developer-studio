@@ -10,6 +10,13 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { WorkflowDefinition } from '@/core/db/types';
 
 interface WorkflowRunControlsProps {
@@ -41,22 +48,30 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
     <div className="h-11 border-b border-zinc-800 bg-zinc-900/60 px-4 flex items-center justify-between select-none shrink-0 text-xs">
       {/* Left: Workflow Picker & New */}
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1.5 bg-zinc-950 border border-zinc-750 rounded-md px-2 py-1">
-          <span className="text-[11px] text-zinc-400">Workflow:</span>
-          <select
-            value={currentWorkflow?.id || ''}
-            onChange={(e) => {
-              const selected = workflows.find((w) => w.id === e.target.value);
-              if (selected) onSelectWorkflow(selected);
-            }}
-            className="bg-transparent text-xs font-semibold text-zinc-200 focus:outline-none cursor-pointer"
-          >
-            {workflows.map((wf) => (
-              <option key={wf.id} value={wf.id} className="bg-zinc-900 text-zinc-100">
-                {wf.name}
-              </option>
-            ))}
-          </select>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] text-zinc-400 font-medium">Workflow:</span>
+          {workflows.length > 0 ? (
+            <Select
+              value={currentWorkflow?.id || ''}
+              onValueChange={(val) => {
+                const selected = workflows.find((w) => w.id === val);
+                if (selected) onSelectWorkflow(selected);
+              }}
+            >
+              <SelectTrigger className="h-7 min-w-[170px] max-w-[240px] text-xs font-sans">
+                <SelectValue placeholder="Select workflow..." />
+              </SelectTrigger>
+              <SelectContent>
+                {workflows.map((wf) => (
+                  <SelectItem key={wf.id} value={wf.id} className="text-xs font-sans">
+                    {wf.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <span className="text-xs text-zinc-500 italic">No workflows</span>
+          )}
         </div>
 
         <Button
@@ -74,6 +89,7 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
           size="sm"
           variant="outline"
           onClick={onSave}
+          disabled={!currentWorkflow || isRunning}
           className="h-7 text-xs flex items-center gap-1 text-zinc-300"
           title="Save Changes to Local Database"
         >
@@ -92,7 +108,7 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
           size="sm"
           variant="ghost"
           onClick={onReset}
-          disabled={isRunning}
+          disabled={!currentWorkflow || isRunning}
           className="h-7 text-xs text-zinc-400 hover:text-zinc-200"
           title="Reset step status markers"
         >
@@ -115,6 +131,7 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
             size="sm"
             variant="emerald"
             onClick={onRun}
+            disabled={!currentWorkflow}
             className="h-7 text-xs flex items-center gap-1 px-4 font-semibold shadow-md shadow-emerald-950/40"
           >
             <Play className="h-3.5 w-3.5" />
