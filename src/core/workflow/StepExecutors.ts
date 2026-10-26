@@ -16,6 +16,8 @@ export class StepExecutors {
         return StepExecutors.executeWaitForMessage(ctx);
       case 'validate_payload':
         return StepExecutors.executeValidatePayload(ctx);
+      case 'validate_schema':
+        return StepExecutors.executeValidateSchema(ctx);
       case 'set_variable':
         return StepExecutors.executeSetVariable(ctx);
       case 'extract_variable':
@@ -355,5 +357,175 @@ export class StepExecutors {
     }
     ctx.context.activeConnectionId = targetId;
     return { success: true, output: { activeConnectionId: targetId } };
+  }
+
+  // 15. JSON Schema Validator
+  private static async executeValidateSchema(ctx: StepExecutorContext): Promise<StepExecutionResult> {
+    const targetVar = ctx.stepConfig.targetVariable;
+    let targetData: any = undefined;
+
+    if (targetVar) {
+      targetData = ctx.context.variables?.[targetVar];
+    } else if (ctx.context.lastReceivedPayload !== undefined) {
+      targetData = ctx.context.lastReceivedPayload;
+    } else if (ctx.context.variables?.payload !== undefined) {
+      targetData = ctx.context.variables.payload;
+    }
+
+    if (targetData === undefined) {
+      return {
+        success: false,
+        error: 'JSON Schema Validation failed: No payload or variable found to validate.',
+      };
+    }
+
+    // Parse JSON string if needed
+    if (typeof targetData === 'string') {
+      try {
+        targetData = JSON.parse(targetData);
+      } catch (err: any) {
+        return {
+          success: false,
+          error: `JSON Schema Validation failed: Target payload is not valid JSON (${err.message})`,
+          output: { raw: targetData, error: err.message },
+        };
+      }
+    }
+
+    // Parse Schema
+    let rawSchema = ctx.stepConfig.schema;
+    if (!rawSchema) {
+      return {
+        success: false,
+        error: 'JSON Schema Validator node requires a schema definition.',
+      };
+    }
+
+    let schemaObj: any;
+    if (typeof rawSchema === 'string') {
+      try {
+        schemaObj = JSON.parse(ctx.interpolate(rawSchema));
+      } catch (err: any) {
+        return {
+          success: false,
+          error: `Invalid JSON Schema format: ${err.message}`,
+        };
+      }
+    } else {
+      schemaObj = rawSchema;
+    }
+
+    // Validate
+    const errors = StepExecutors.validateJsonAgainstSchema(targetData, schemaObj);
+
+    if (errors.length > 0) {
+      return {
+        success: false,
+        error: `Schema validation failed (${errors.length} errors):\n- ${errors.join('\n- ')}`,
+        output: {
+          valid: false,
+          errors,
+          payload: targetData,
+        },
+      };
+    }
+
+    return {
+      success: true,
+      output: {
+        valid: true,
+        errors: [],
+        payload: targetData,
+      },
+    };
+  }
+
+  /**
+   * Recursive JSON Schema validator supporting type, required, properties, minimum, maximum, enum, and pattern.
+   */
+  private static validateJsonAgainstSchema(data: any, schema: any, path: string = '$'): string[] {
+    const errors: string[] = [];
+    if (!schema || typeof schema !== 'object') return errors;
+
+    // 1. Type validation
+    if (schema.type) {
+      const expectedType = schema.type;
+      const actualType = Array.isArray(data) ? 'array' : data === null ? 'null' : typeof data;
+
+      if (expectedType === 'integer') {
+        if (typeof data !== 'number' || !Number.isInteger(data)) {
+          errors.push(`${path}: expected integer, received ${actualType} (${data})`);
+        }
+      } else if (expectedType === 'number') {
+        if (typeof data !== 'number' || Number.isNaN(data)) {
+          errors.push(`${path}: expected number, received ${actualType}`);
+        }
+      } else if (expectedType !== actualType) {
+        errors.push(`${path}: expected type "${expectedType}", received "${actualType}"`);
+      }
+    }
+
+    // 2. Enum validation
+    if (Array.isArray(schema.enum)) {
+      if (!schema.enum.includes(data)) {
+        errors.push(`${path}: value ${JSON.stringify(data)} is not in allowed enum [${schema.enum.map((e: any) => JSON.stringify(e)).join(', ')}]`);
+      }
+    }
+
+    // 3. Number constraints: minimum, maximum
+    if (typeof data === 'number') {
+      if (schema.minimum !== undefined && data < schema.minimum) {
+        errors.push(`${path}: value ${data} is less than minimum ${schema.minimum}`);
+      }
+      if (schema.maximum !== undefined && data > schema.maximum) {
+        errors.push(`${path}: value ${data} exceeds maximum ${schema.maximum}`);
+      }
+    }
+
+    // 4. String constraints: minLength, maxLength, pattern
+    if (typeof data === 'string') {
+      if (schema.minLength !== undefined && data.length < schema.minLength) {
+        errors.push(`${path}: length ${data.length} is shorter than minLength ${schema.minLength}`);
+      }
+      if (schema.maxLength !== undefined && data.length > schema.maxLength) {
+        errors.push(`${path}: length ${data.length} exceeds maxLength ${schema.maxLength}`);
+      }
+      if (schema.pattern) {
+        const regex = new RegExp(schema.pattern);
+        if (!regex.test(data)) {
+          errors.push(`${path}: string does not match regex pattern "${schema.pattern}"`);
+        }
+      }
+    }
+
+    // 5. Object validation: required & properties
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      if (Array.isArray(schema.required)) {
+        for (const reqKey of schema.required) {
+          if (data[reqKey] === undefined || data[reqKey] === null) {
+            errors.push(`${path}.${reqKey}: missing required property "${reqKey}"`);
+          }
+        }
+      }
+
+      if (schema.properties && typeof schema.properties === 'object') {
+        for (const [propKey, propSchema] of Object.entries(schema.properties)) {
+          if (data[propKey] !== undefined) {
+            const subErrors = StepExecutors.validateJsonAgainstSchema(data[propKey], propSchema, `${path}.${propKey}`);
+            errors.push(...subErrors);
+          }
+        }
+      }
+    }
+
+    // 6. Array validation: items
+    if (Array.isArray(data) && schema.items && typeof schema.items === 'object') {
+      data.forEach((item, index) => {
+        const itemErrors = StepExecutors.validateJsonAgainstSchema(item, schema.items, `${path}[${index}]`);
+        errors.push(...itemErrors);
+      });
+    }
+
+    return errors;
   }
 }

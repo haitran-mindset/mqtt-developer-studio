@@ -97,6 +97,7 @@ export interface WorkflowNodeData {
     | 'delay'
     | 'wait_for_message'
     | 'validate_payload'
+    | 'validate_schema'
     | 'set_variable'
     | 'extract_variable'
     | 'condition'

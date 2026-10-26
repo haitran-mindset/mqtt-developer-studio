@@ -17,6 +17,7 @@ import {
   Power,
   Copy,
   Trash2,
+  FileCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { WorkflowStepType } from '@/core/workflow/types';
@@ -28,6 +29,7 @@ const STEP_ICONS: Record<WorkflowStepType, React.ReactNode> = {
   delay: <Clock className="h-3.5 w-3.5 text-amber-400" />,
   wait_for_message: <Radio className="h-3.5 w-3.5 text-yellow-400" />,
   validate_payload: <CheckCircle2 className="h-3.5 w-3.5 text-purple-400" />,
+  validate_schema: <FileCheck className="h-3.5 w-3.5 text-blue-400" />,
   set_variable: <Variable className="h-3.5 w-3.5 text-teal-400" />,
   extract_variable: <FileSearch className="h-3.5 w-3.5 text-teal-300" />,
   condition: <GitBranch className="h-3.5 w-3.5 text-orange-400" />,
@@ -128,6 +130,19 @@ export const WorkflowCustomNode = memo(({ id, data, selected }: NodeProps) => {
   else if (stepType === 'delay') summary = `${config.delayMs || 1000}ms delay`;
   else if (stepType === 'wait_for_message') summary = config.topic || 'Wait for message';
   else if (stepType === 'validate_payload') summary = `${config.assertionField} ${config.operator || '=='} ${config.expectedValue ?? ''}`;
+  else if (stepType === 'validate_schema') {
+    const raw = config.schema;
+    let reqCount = '';
+    try {
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (parsed?.required?.length) {
+        reqCount = `${parsed.required.length} required fields`;
+      }
+    } catch (e) {}
+    summary = config.targetVariable
+      ? `Schema: ${config.targetVariable} (${reqCount || 'JSON'})`
+      : `Schema: Payload (${reqCount || 'JSON'})`;
+  }
   else if (stepType === 'set_variable') summary = `${config.varName} = ${config.varValue}`;
   else if (stepType === 'condition') summary = config.expression || 'true';
   else if (stepType === 'loop') summary = `Repeat ${config.count || 1} times`;

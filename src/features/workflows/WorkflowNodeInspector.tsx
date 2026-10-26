@@ -355,6 +355,127 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
           </div>
         )}
 
+        {/* 5b. Validate JSON Schema */}
+        {stepType === 'validate_schema' && (
+          <div className="space-y-3 pt-2 border-t border-zinc-800">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-[11px] font-medium text-zinc-300">Target Variable</Label>
+                <span className="text-[10px] text-zinc-500 font-mono">Optional</span>
+              </div>
+              <Input
+                value={config.targetVariable || ''}
+                onChange={(e) => handleUpdateConfig('targetVariable', e.target.value)}
+                placeholder="Leave blank for last received payload"
+              />
+              <span className="text-[10px] text-zinc-500 block">
+                Target data to validate. If empty, evaluates incoming payload.
+              </span>
+            </div>
+
+            {/* Quick Schema Preset Selector */}
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Schema Preset</Label>
+              <Select
+                onValueChange={(val) => {
+                  let presetSchema = '';
+                  if (val === 'iot_sensor') {
+                    presetSchema = JSON.stringify(
+                      {
+                        type: 'object',
+                        required: ['deviceId', 'temperature', 'humidity', 'timestamp'],
+                        properties: {
+                          deviceId: { type: 'string', minLength: 3 },
+                          temperature: { type: 'number', minimum: -40, maximum: 125 },
+                          humidity: { type: 'number', minimum: 0, maximum: 100 },
+                          timestamp: { type: 'number' },
+                        },
+                      },
+                      null,
+                      2
+                    );
+                  } else if (val === 'alert_event') {
+                    presetSchema = JSON.stringify(
+                      {
+                        type: 'object',
+                        required: ['alertId', 'severity', 'errorCode'],
+                        properties: {
+                          alertId: { type: 'string' },
+                          severity: { type: 'string', enum: ['INFO', 'WARNING', 'CRITICAL'] },
+                          errorCode: { type: 'string' },
+                          message: { type: 'string' },
+                        },
+                      },
+                      null,
+                      2
+                    );
+                  } else if (val === 'heartbeat') {
+                    presetSchema = JSON.stringify(
+                      {
+                        type: 'object',
+                        required: ['deviceId', 'status', 'uptime'],
+                        properties: {
+                          deviceId: { type: 'string' },
+                          status: { type: 'string', enum: ['online', 'standby', 'offline'] },
+                          uptime: { type: 'number', minimum: 0 },
+                          battery: { type: 'number', minimum: 0, maximum: 100 },
+                        },
+                      },
+                      null,
+                      2
+                    );
+                  }
+                  if (presetSchema) {
+                    handleUpdateConfig('schema', presetSchema);
+                  }
+                }}
+              >
+                <SelectTrigger className="h-7 text-xs">
+                  <SelectValue placeholder="Load a template schema..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="iot_sensor">IoT Sensor Telemetry (temp, humidity, devId)</SelectItem>
+                  <SelectItem value="alert_event">Alert / Alarm Event (severity, errorCode)</SelectItem>
+                  <SelectItem value="heartbeat">Device Heartbeat (status, uptime, battery)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Schema JSON Editor */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-[11px] font-medium text-zinc-300">JSON Schema Definition</Label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      const parsed = JSON.parse(config.schema || '{}');
+                      handleUpdateConfig('schema', JSON.stringify(parsed, null, 2));
+                    } catch (e) {}
+                  }}
+                  className="text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer font-mono"
+                >
+                  Prettify
+                </button>
+              </div>
+              <Textarea
+                rows={10}
+                className="font-mono text-xs text-zinc-200 bg-zinc-950 border-zinc-800 leading-relaxed"
+                value={
+                  typeof config.schema === 'object'
+                    ? JSON.stringify(config.schema, null, 2)
+                    : config.schema || ''
+                }
+                onChange={(e) => handleUpdateConfig('schema', e.target.value)}
+                placeholder={'{\n  "type": "object",\n  "required": ["temperature"],\n  "properties": {\n    "temperature": { "type": "number" }\n  }\n}'}
+              />
+              <span className="text-[10px] text-zinc-500 block leading-tight">
+                Supports <span className="text-zinc-300">type, required, properties, minimum, maximum, enum, pattern</span>.
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* 6. Set Variable */}
         {stepType === 'set_variable' && (
           <div className="space-y-3 pt-2 border-t border-zinc-800">

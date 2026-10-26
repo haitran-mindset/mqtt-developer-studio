@@ -29,6 +29,11 @@ import { WorkflowStepType } from '@/core/workflow/types';
 import { Button } from '@/components/ui/button';
 import { GitBranch, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { WorkflowTemplatesModal } from './templates/WorkflowTemplatesModal';
+import {
+  exportWorkflowToJson,
+  importWorkflowFromJson,
+} from '@/core/workflow/workflowImportExport';
 
 const nodeTypes = {
   workflowCustomNode: WorkflowCustomNode,
@@ -63,6 +68,8 @@ export const WorkflowStudio: React.FC = () => {
   const [newWorkflowDialogOpen, setNewWorkflowDialogOpen] = useState(false);
   const [renameWorkflowDialogOpen, setRenameWorkflowDialogOpen] = useState(false);
   const [deleteWorkflowDialogOpen, setDeleteWorkflowDialogOpen] = useState(false);
+  const [templatesModalOpen, setTemplatesModalOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isRunning, setIsRunning] = useState(false);
   const [statusText, setStatusText] = useState<string>('');
@@ -157,6 +164,21 @@ export const WorkflowStudio: React.FC = () => {
         return { topic: 'devices/device-01/response', timeoutMs: 5000 };
       case 'validate_payload':
         return { assertionField: 'status', operator: 'equals', expectedValue: 'success' };
+      case 'validate_schema':
+        return {
+          schema: JSON.stringify(
+            {
+              type: 'object',
+              required: ['deviceId', 'temperature'],
+              properties: {
+                deviceId: { type: 'string' },
+                temperature: { type: 'number' },
+              },
+            },
+            null,
+            2
+          ),
+        };
       case 'set_variable':
         return { varName: 'deviceId', varValue: 'sensor-01' };
       case 'extract_variable':
@@ -350,6 +372,45 @@ export const WorkflowStudio: React.FC = () => {
     toast.info(`Deleted workflow "${nameToDelete}"`);
   };
 
+  // Export Workflow to JSON
+  const handleExportWorkflow = () => {
+    if (!currentWorkflow) return;
+    const fullWorkflow: WorkflowDefinition = {
+      ...currentWorkflow,
+      nodes,
+      edges,
+    };
+    exportWorkflowToJson(fullWorkflow);
+    toast.success(`Exported "${currentWorkflow.name}" to JSON`);
+  };
+
+  // Import Workflow from JSON
+  const handleImportWorkflowClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const imported = await importWorkflowFromJson(file);
+      addWorkflow(imported);
+      setActiveWorkflowId(imported.id);
+      toast.success(`Imported "${imported.name}" with ${imported.nodes.length} nodes!`);
+    } catch (err: any) {
+      toast.error(`Import failed: ${err.message}`);
+    } finally {
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  // Select Template from Library
+  const handleSelectTemplate = (templateWf: WorkflowDefinition) => {
+    addWorkflow(templateWf);
+    setActiveWorkflowId(templateWf.id);
+    toast.success(`Loaded template: "${templateWf.name}"`);
+  };
+
   // Reset node status markers
   const handleResetStatuses = () => {
     setNodes((nds) =>
@@ -474,6 +535,9 @@ export const WorkflowStudio: React.FC = () => {
         onRenameWorkflow={handleRenameWorkflow}
         onDuplicateWorkflow={handleDuplicateWorkflow}
         onDeleteWorkflow={handleDeleteWorkflow}
+        onOpenTemplates={() => setTemplatesModalOpen(true)}
+        onExportWorkflow={handleExportWorkflow}
+        onImportWorkflow={handleImportWorkflowClick}
         workflows={workflows}
         currentWorkflow={currentWorkflow}
         onSelectWorkflow={(wf) => setActiveWorkflowId(wf.id)}
@@ -601,6 +665,22 @@ export const WorkflowStudio: React.FC = () => {
         confirmText="Delete Workflow"
         variant="destructive"
         onConfirm={handleConfirmDeleteWorkflow}
+      />
+
+      {/* Hidden File Input for Workflow Import */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept=".json,application/json"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
+      {/* Templates Library Modal */}
+      <WorkflowTemplatesModal
+        open={templatesModalOpen}
+        onOpenChange={setTemplatesModalOpen}
+        onSelectTemplate={handleSelectTemplate}
       />
     </div>
   );

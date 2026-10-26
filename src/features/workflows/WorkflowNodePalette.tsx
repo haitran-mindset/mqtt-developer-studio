@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   RefreshCw,
   Plus,
+  FileCheck,
 } from 'lucide-react';
 import type { WorkflowStepType } from '@/core/workflow/types';
 
@@ -52,7 +53,8 @@ const PALETTE_GROUPS: { groupName: string; items: PaletteItem[] }[] = [
     items: [
       { type: 'set_variable', label: 'Set Variable', icon: <Variable className="h-3.5 w-3.5 text-teal-400" />, desc: 'Assign value to context' },
       { type: 'extract_variable', label: 'Extract Variable', icon: <FileSearch className="h-3.5 w-3.5 text-teal-300" />, desc: 'Extract field via JSONPath' },
-      { type: 'validate_payload', label: 'Validate Payload', icon: <CheckCircle2 className="h-3.5 w-3.5 text-purple-400" />, desc: 'Assert payload values & schema' },
+      { type: 'validate_payload', label: 'Validate Payload', icon: <CheckCircle2 className="h-3.5 w-3.5 text-purple-400" />, desc: 'Assert payload values' },
+      { type: 'validate_schema', label: 'JSON Schema Validator', icon: <FileCheck className="h-3.5 w-3.5 text-blue-400" />, desc: 'Validate payload with JSON Schema' },
     ],
   },
   {

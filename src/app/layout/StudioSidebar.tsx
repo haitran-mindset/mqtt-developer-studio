@@ -367,7 +367,7 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
                           e.stopPropagation();
                           setDeleteWorkflowTarget(wf);
                         }}
-                        className="p-0.5 text-zinc-400 hover:text-rose-400"
+                        className="p-1 rounded text-zinc-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
                         title="Delete Workflow"
                       >
                         <Trash2 className="h-3 w-3" />
