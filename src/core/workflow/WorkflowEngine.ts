@@ -56,95 +56,37 @@ export class WorkflowEngine {
     const nodes = this.workflow.nodes || [];
     const edges = this.workflow.edges || [];
 
-    // Find starting nodes (nodes without incoming edges)
+    if (nodes.length === 0) {
+      const emptyRun: WorkflowRunRecord = {
+        id: runId,
+        workflowId: this.workflow.id,
+        workflowName: this.workflow.name,
+        status: 'completed',
+        startedAt,
+        completedAt: Date.now(),
+        stepsLog: [],
+        contextSnapshot: { ...this.context.variables },
+      };
+      useDataStore.getState().addWorkflowRun(emptyRun);
+      return emptyRun;
+    }
+
+    // Find starting nodes (all nodes without incoming edges)
     const targets = new Set(edges.map((e: any) => e.target));
     const startNodes = nodes.filter((n: any) => !targets.has(n.id));
 
-    let currentNode = startNodes.length > 0 ? startNodes[0] : nodes[0];
-    let overallStatus: 'completed' | 'failed' | 'cancelled' = 'completed';
+    // Fall back to first node if all nodes have incoming edges (e.g. cycle)
+    const initialNodes = startNodes.length > 0 ? startNodes : [nodes[0]];
 
-    while (currentNode && !this.aborted) {
-      const nodeId = currentNode.id;
-      const stepType = currentNode.data?.stepType;
-      const stepName = currentNode.data?.label || nodeId;
-      const stepConfig = currentNode.data?.config || {};
+    // Execute all independent root pipelines in parallel
+    const branchResults = await Promise.all(
+      initialNodes.map((startNode: any) =>
+        this.executeNode(startNode, nodes, edges, stepsLog, new Map<string, number>())
+      )
+    );
 
-      this.notifyStepStatus(nodeId, 'running');
-      const stepStartTime = Date.now();
-
-      const executorCtx: StepExecutorContext = {
-        context: this.context,
-        stepConfig,
-        nodeId,
-        stepName,
-        connectionManager: this.connectionManager,
-        interpolate: (str: string) => this.interpolator.interpolate(str, this.getContext()),
-        isAborted: () => this.aborted,
-      };
-
-      try {
-        const result = await StepExecutors.execute(stepType, executorCtx);
-        const duration = Date.now() - stepStartTime;
-
-        if (result.success) {
-          this.notifyStepStatus(nodeId, 'success');
-          stepsLog.push({
-            nodeId,
-            stepName,
-            stepType,
-            status: 'success',
-            durationMs: duration,
-            output: result.output,
-            timestamp: Date.now(),
-          });
-
-          if (stepType === 'stop') {
-            break;
-          }
-
-          // Determine next node
-          const outgoing = edges.filter((e: any) => e.source === nodeId);
-          if (outgoing.length === 0) {
-            currentNode = null;
-          } else if (result.nextHandle) {
-            // Find edge with matching handle
-            const branchEdge = outgoing.find((e: any) => e.sourceHandle === result.nextHandle);
-            const targetId = branchEdge?.target;
-            currentNode = targetId ? nodes.find((n: any) => n.id === targetId) : null;
-          } else {
-            const nextEdge = outgoing[0];
-            currentNode = nodes.find((n: any) => n.id === nextEdge.target);
-          }
-        } else {
-          this.notifyStepStatus(nodeId, 'failed', result.error);
-          stepsLog.push({
-            nodeId,
-            stepName,
-            stepType,
-            status: 'failed',
-            durationMs: duration,
-            error: result.error,
-            timestamp: Date.now(),
-          });
-          overallStatus = 'failed';
-          break;
-        }
-      } catch (err: any) {
-        const duration = Date.now() - stepStartTime;
-        this.notifyStepStatus(nodeId, 'failed', err.message);
-        stepsLog.push({
-          nodeId,
-          stepName,
-          stepType,
-          status: 'failed',
-          durationMs: duration,
-          error: err.message,
-          timestamp: Date.now(),
-        });
-        overallStatus = 'failed';
-        break;
-      }
-    }
+    const allSuccessful = branchResults.every(Boolean);
+    let overallStatus: 'completed' | 'failed' | 'cancelled' = allSuccessful ? 'completed' : 'failed';
 
     if (this.aborted && overallStatus !== 'failed') {
       overallStatus = 'cancelled';
@@ -164,5 +106,126 @@ export class WorkflowEngine {
     useDataStore.getState().addWorkflowRun(runRecord);
 
     return runRecord;
+  }
+
+  private async executeNode(
+    node: any,
+    nodes: any[],
+    edges: any[],
+    stepsLog: WorkflowStepRunLog[],
+    visitCounts: Map<string, number>
+  ): Promise<boolean> {
+    if (this.aborted) {
+      return false;
+    }
+
+    const nodeId = node.id;
+    const stepType = node.data?.stepType;
+    const stepName = node.data?.label || nodeId;
+    const stepConfig = node.data?.config || {};
+
+    // Prevent runaway cycles (allow up to 500 visits per node for loops)
+    const currentCount = (visitCounts.get(nodeId) || 0) + 1;
+    if (currentCount > 500) {
+      console.warn(`[WorkflowEngine] Max visit limit (500) exceeded at node ${nodeId}, stopping branch.`);
+      return false;
+    }
+    const nextVisitCounts = new Map(visitCounts);
+    nextVisitCounts.set(nodeId, currentCount);
+
+    this.notifyStepStatus(nodeId, 'running');
+    const stepStartTime = Date.now();
+
+    const executorCtx: StepExecutorContext = {
+      context: this.context,
+      stepConfig,
+      nodeId,
+      stepName,
+      connectionManager: this.connectionManager,
+      interpolate: (str: string) => this.interpolator.interpolate(str, this.getContext()),
+      isAborted: () => this.aborted,
+    };
+
+    try {
+      const result = await StepExecutors.execute(stepType, executorCtx);
+      const duration = Date.now() - stepStartTime;
+
+      if (this.aborted) {
+        return false;
+      }
+
+      if (result.success) {
+        this.notifyStepStatus(nodeId, 'success');
+        stepsLog.push({
+          nodeId,
+          stepName,
+          stepType,
+          status: 'success',
+          durationMs: duration,
+          output: result.output,
+          timestamp: Date.now(),
+        });
+
+        // Stop node halts execution along this branch
+        if (stepType === 'stop') {
+          return true;
+        }
+
+        // Determine next outgoing edges
+        const outgoing = edges.filter((e: any) => e.source === nodeId);
+        if (outgoing.length === 0) {
+          return true;
+        }
+
+        let nextEdges = outgoing;
+        if (result.nextHandle) {
+          const matched = outgoing.filter((e: any) => e.sourceHandle === result.nextHandle);
+          nextEdges = matched;
+        }
+
+        // Resolve next target nodes
+        const nextNodes = nextEdges
+          .map((e: any) => nodes.find((n: any) => n.id === e.target))
+          .filter(Boolean);
+
+        if (nextNodes.length === 0) {
+          return true;
+        }
+
+        // Execute all outgoing child branches in parallel
+        const childResults = await Promise.all(
+          nextNodes.map((childNode: any) =>
+            this.executeNode(childNode, nodes, edges, stepsLog, nextVisitCounts)
+          )
+        );
+
+        return childResults.every(Boolean);
+      } else {
+        this.notifyStepStatus(nodeId, 'failed', result.error);
+        stepsLog.push({
+          nodeId,
+          stepName,
+          stepType,
+          status: 'failed',
+          durationMs: duration,
+          error: result.error,
+          timestamp: Date.now(),
+        });
+        return false;
+      }
+    } catch (err: any) {
+      const duration = Date.now() - stepStartTime;
+      this.notifyStepStatus(nodeId, 'failed', err.message);
+      stepsLog.push({
+        nodeId,
+        stepName,
+        stepType,
+        status: 'failed',
+        durationMs: duration,
+        error: err.message,
+        timestamp: Date.now(),
+      });
+      return false;
+    }
   }
 }
