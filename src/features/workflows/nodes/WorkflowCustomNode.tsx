@@ -124,6 +124,7 @@ export const WorkflowCustomNode = memo(({ id, data, selected }: NodeProps) => {
   let summary = '';
   if (stepType === 'publish') summary = config.topic || 'Publish message';
   else if (stepType === 'subscribe') summary = config.topic || 'Subscribe topic';
+  else if (stepType === 'unsubscribe') summary = config.topic ? `Unsub: ${config.topic}` : 'Unsubscribe topic';
   else if (stepType === 'delay') summary = `${config.delayMs || 1000}ms delay`;
   else if (stepType === 'wait_for_message') summary = config.topic || 'Wait for message';
   else if (stepType === 'validate_payload') summary = `${config.assertionField} ${config.operator || '=='} ${config.expectedValue ?? ''}`;

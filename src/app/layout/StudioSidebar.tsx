@@ -125,6 +125,22 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
     toast.success('Broker profile cloned');
   };
 
+  const handleDuplicateWorkflow = (wf: WorkflowDefinition) => {
+    const newId = `workflow-${Date.now()}`;
+    const newName = `${wf.name} (Copy)`;
+    const cloned: WorkflowDefinition = {
+      ...JSON.parse(JSON.stringify(wf)),
+      id: newId,
+      name: newName,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    addWorkflow(cloned);
+    setActiveWorkflowId(newId);
+    if (onSelectWorkflow) onSelectWorkflow(cloned);
+    toast.success(`Workflow duplicated: "${newName}"`);
+  };
+
   return (
     <aside className="w-64 border-r border-zinc-800 bg-zinc-950 flex flex-col shrink-0 select-none">
       {/* Sidebar Header */}
@@ -335,6 +351,16 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
                         title="Rename Workflow"
                       >
                         <Pencil className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDuplicateWorkflow(wf);
+                        }}
+                        className="p-0.5 text-zinc-400 hover:text-cyan-400"
+                        title="Duplicate Workflow"
+                      >
+                        <Copy className="h-3 w-3" />
                       </button>
                       <button
                         onClick={(e) => {

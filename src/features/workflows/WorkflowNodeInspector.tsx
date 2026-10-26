@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { WorkflowStepType } from '@/core/workflow/types';
+import { useDataStore } from '@/core/store/dataStore';
 import { X, Sparkles, Trash2, Play, Copy } from 'lucide-react';
 
 interface WorkflowNodeInspectorProps {
@@ -31,6 +32,8 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
   onRunFromNode,
   onClose,
 }) => {
+  const profiles = useDataStore((state) => state.connectionProfiles);
+
   if (!selectedNode) {
     return (
       <div className="w-80 border-l border-zinc-800 bg-zinc-950 p-4 text-xs font-mono text-zinc-600 flex items-center justify-center select-none">
@@ -230,6 +233,23 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
           </div>
         )}
 
+        {/* 2b. Unsubscribe Step */}
+        {stepType === 'unsubscribe' && (
+          <div className="space-y-3 pt-2 border-t border-zinc-800">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Topic to Unsubscribe</Label>
+              <Input
+                value={config.topic || ''}
+                onChange={(e) => handleUpdateConfig('topic', e.target.value)}
+                placeholder="e.g. devices/+/response or eonic/1233/state"
+              />
+              <span className="text-[10px] text-zinc-500 block">
+                The MQTT topic or wildcard pattern to cancel subscription from.
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* 3. Delay Step */}
         {stepType === 'delay' && (
           <div className="space-y-3 pt-2 border-t border-zinc-800">
@@ -425,6 +445,51 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
                 onChange={(e) => handleUpdateConfig('message', e.target.value)}
                 placeholder="e.g. Device response received: {{reqId}}"
               />
+            </div>
+          </div>
+        )}
+
+        {/* 11. Stop Step */}
+        {stepType === 'stop' && (
+          <div className="p-3 bg-zinc-900/50 rounded border border-zinc-800 text-[11px] text-zinc-400">
+            This step cleanly halts execution along this branch. Subsequent connected steps will not execute.
+          </div>
+        )}
+
+        {/* 12. Fail Step */}
+        {stepType === 'fail' && (
+          <div className="space-y-3 pt-2 border-t border-zinc-800">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Failure Reason</Label>
+              <Input
+                value={config.reason || ''}
+                onChange={(e) => handleUpdateConfig('reason', e.target.value)}
+                placeholder="e.g. Assertion failed or timeout"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 13. Switch Connection Step */}
+        {stepType === 'switch_connection' && (
+          <div className="space-y-3 pt-2 border-t border-zinc-800">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Target Broker Profile</Label>
+              <Select
+                value={config.connectionId || ''}
+                onValueChange={(val) => handleUpdateConfig('connectionId', val)}
+              >
+                <SelectTrigger className="w-full h-8 text-xs font-sans">
+                  <SelectValue placeholder="Select broker..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {profiles.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name} ({p.protocol.toUpperCase()})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         )}

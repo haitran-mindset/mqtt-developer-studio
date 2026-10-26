@@ -9,6 +9,7 @@ import {
   Sparkles,
   Pencil,
   Trash2,
+  Copy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +30,7 @@ interface WorkflowRunControlsProps {
   onSave: () => void;
   onNewWorkflow?: () => void;
   onRenameWorkflow?: () => void;
+  onDuplicateWorkflow?: () => void;
   onDeleteWorkflow?: () => void;
   workflows: WorkflowDefinition[];
   currentWorkflow: WorkflowDefinition | null;
@@ -44,6 +46,7 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
   onSave,
   onNewWorkflow,
   onRenameWorkflow,
+  onDuplicateWorkflow,
   onDeleteWorkflow,
   workflows,
   currentWorkflow,
@@ -91,6 +94,20 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
           >
             <Pencil className="h-3 w-3" />
             <span>Rename</span>
+          </Button>
+        )}
+
+        {onDuplicateWorkflow && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onDuplicateWorkflow}
+            disabled={!currentWorkflow || isRunning}
+            className="h-7 text-xs flex items-center gap-1 text-zinc-300 hover:text-cyan-400 hover:border-cyan-500/50"
+            title="Duplicate Current Workflow"
+          >
+            <Copy className="h-3 w-3" />
+            <span>Duplicate</span>
           </Button>
         )}
 

@@ -149,6 +149,8 @@ export const WorkflowStudio: React.FC = () => {
         return { topic: 'devices/device-01/command', payload: '{"cmd": "ping"}', qos: 0 };
       case 'subscribe':
         return { topic: 'devices/device-01/response', qos: 1 };
+      case 'unsubscribe':
+        return { topic: 'devices/device-01/response' };
       case 'delay':
         return { delayMs: 1000 };
       case 'wait_for_message':
@@ -165,6 +167,10 @@ export const WorkflowStudio: React.FC = () => {
         return { count: 3 };
       case 'log':
         return { message: 'Workflow step executed' };
+      case 'fail':
+        return { reason: 'Step assertion failed' };
+      case 'switch_connection':
+        return { connectionId: '' };
       default:
         return {};
     }
@@ -299,6 +305,29 @@ export const WorkflowStudio: React.FC = () => {
 
     updateWorkflow(updated);
     toast.success(`Workflow renamed to "${trimmed}"`);
+  };
+
+  // Duplicate current workflow
+  const handleDuplicateWorkflow = () => {
+    if (!currentWorkflow) return;
+
+    const newId = `workflow-${Date.now()}`;
+    const newName = `${currentWorkflow.name} (Copy)`;
+
+    const duplicatedWf: WorkflowDefinition = {
+      ...currentWorkflow,
+      id: newId,
+      name: newName,
+      nodes: JSON.parse(JSON.stringify(nodes)),
+      edges: JSON.parse(JSON.stringify(edges)),
+      variables: { ...(currentWorkflow.variables || {}) },
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    addWorkflow(duplicatedWf);
+    setActiveWorkflowId(newId);
+    toast.success(`Workflow duplicated: "${newName}"`);
   };
 
   // Delete current workflow
@@ -443,6 +472,7 @@ export const WorkflowStudio: React.FC = () => {
         onSave={handleSaveWorkflow}
         onNewWorkflow={handleNewWorkflow}
         onRenameWorkflow={handleRenameWorkflow}
+        onDuplicateWorkflow={handleDuplicateWorkflow}
         onDeleteWorkflow={handleDeleteWorkflow}
         workflows={workflows}
         currentWorkflow={currentWorkflow}
