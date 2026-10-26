@@ -10,7 +10,12 @@ export class MQTTConnectionManager {
   private globalLogListeners: Set<LogCallback> = new Set();
 
   getConnection(connectionId: string): MQTTClientAdapter | undefined {
-    return this.connections.get(connectionId);
+    const adapter = this.connections.get(connectionId);
+    if (adapter) return adapter;
+
+    // Fallback: if there is an active connected broker, return it
+    const connected = Array.from(this.connections.values()).find((a) => a.getStatus() === 'connected');
+    return connected;
   }
 
   getAllConnections(): Map<string, MQTTClientAdapter> {
@@ -97,9 +102,30 @@ export class MQTTConnectionManager {
     payload: string | Uint8Array,
     options: PublishOptions = {}
   ): Promise<void> {
-    const adapter = this.connections.get(connectionId);
+    let adapter = this.connections.get(connectionId);
+
+    // Auto-connect if profile exists in dataStore
     if (!adapter) {
-      throw new Error(`Connection ${connectionId} not found in manager`);
+      const profile = useDataStore.getState().connectionProfiles.find((p) => p.id === connectionId);
+      if (profile) {
+        adapter = await this.connect(profile);
+      }
+    }
+
+    // Fallback to any currently connected adapter
+    if (!adapter) {
+      const connected = Array.from(this.connections.values()).find((a) => a.getStatus() === 'connected');
+      if (connected) {
+        adapter = connected;
+      }
+    }
+
+    if (!adapter) {
+      throw new Error(`Connection ${connectionId} not found in manager and no connected broker available.`);
+    }
+
+    if (adapter.getStatus() !== 'connected') {
+      await adapter.connect();
     }
 
     await adapter.publish(topic, payload, options);

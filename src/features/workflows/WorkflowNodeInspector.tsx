@@ -12,12 +12,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { WorkflowStepType } from '@/core/workflow/types';
-import { X, Sparkles, Trash2 } from 'lucide-react';
+import { X, Sparkles, Trash2, Play, Copy } from 'lucide-react';
 
 interface WorkflowNodeInspectorProps {
   selectedNode: any;
   onUpdateNodeData: (nodeId: string, newData: any) => void;
   onDeleteNode: (nodeId: string) => void;
+  onDuplicateNode?: (nodeId: string) => void;
+  onRunFromNode?: (nodeId: string) => void;
   onClose: () => void;
 }
 
@@ -25,6 +27,8 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
   selectedNode,
   onUpdateNodeData,
   onDeleteNode,
+  onDuplicateNode,
+  onRunFromNode,
   onClose,
 }) => {
   if (!selectedNode) {
@@ -67,6 +71,18 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
         </div>
 
         <div className="flex items-center gap-1">
+          {onDuplicateNode && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => onDuplicateNode(id)}
+              className="h-6 w-6 text-zinc-400 hover:text-cyan-400"
+              title="Duplicate Node (Ctrl+D)"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </Button>
+          )}
+
           <Button
             size="icon"
             variant="ghost"
@@ -99,6 +115,36 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
             placeholder="Step Name"
           />
         </div>
+
+        {/* Enable / Disable Step Switch */}
+        <div className="flex items-center justify-between p-2 rounded bg-zinc-900 border border-zinc-800">
+          <div className="space-y-0.5">
+            <span className="text-[11px] font-medium text-zinc-200">Enable Step</span>
+            <p className="text-[10px] text-zinc-500">
+              {data.disabled ? 'Step disabled (skipped in workflow)' : 'Step is active'}
+            </p>
+          </div>
+          <Switch
+            checked={!data.disabled}
+            onCheckedChange={(checked) =>
+              onUpdateNodeData(id, { ...data, disabled: !checked })
+            }
+          />
+        </div>
+
+        {/* Run From Here Button */}
+        {onRunFromNode && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onRunFromNode(id)}
+            className="w-full gap-1.5 text-xs border-cyan-800/60 bg-cyan-950/20 hover:bg-cyan-950/50 text-cyan-400 hover:text-cyan-300"
+          >
+            <Play className="h-3.5 w-3.5 fill-cyan-400" />
+            Run from this step
+          </Button>
+        )}
 
         {/* 1. Publish Step */}
         {stepType === 'publish' && (

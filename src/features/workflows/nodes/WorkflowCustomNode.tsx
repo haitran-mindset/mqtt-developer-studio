@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import {
   Send,
   Inbox,
@@ -14,7 +14,11 @@ import {
   StopCircle,
   AlertTriangle,
   RefreshCw,
+  Power,
+  Copy,
+  Trash2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import type { WorkflowStepType } from '@/core/workflow/types';
 
 const STEP_ICONS: Record<WorkflowStepType, React.ReactNode> = {
@@ -34,18 +38,78 @@ const STEP_ICONS: Record<WorkflowStepType, React.ReactNode> = {
   switch_connection: <RefreshCw className="h-3.5 w-3.5 text-blue-400" />,
 };
 
-export const WorkflowCustomNode = memo(({ data, selected }: NodeProps) => {
+export const WorkflowCustomNode = memo(({ id, data, selected }: NodeProps) => {
+  const { setNodes, setEdges } = useReactFlow();
   const nodeData = data as Record<string, any>;
   const stepType = (nodeData.stepType as WorkflowStepType) || 'publish';
   const status = String(nodeData.status || 'idle');
   const label = String(nodeData.label || stepType);
   const config = (nodeData.config as Record<string, any>) || {};
+  const isDisabled = Boolean(nodeData.disabled);
+
+  const handleToggleDisabled = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.id === id
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                disabled: !isDisabled,
+              },
+            }
+          : n
+      )
+    );
+  };
+
+  const handleDuplicate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newId = `node-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+    const originalLabel = String(nodeData.label || stepType || 'Step');
+    const newLabel = `${originalLabel} (Copy)`;
+
+    setNodes((nds) => {
+      const target = nds.find((n) => n.id === id);
+      if (!target) return nds;
+
+      const dupNode = {
+        ...target,
+        id: newId,
+        position: {
+          x: (target.position?.x ?? 200) + 40,
+          y: (target.position?.y ?? 150) + 40,
+        },
+        selected: true,
+        data: {
+          ...JSON.parse(JSON.stringify(target.data || {})),
+          label: newLabel,
+          status: 'idle',
+          lastError: undefined,
+        },
+      };
+
+      return [...nds.map((n) => ({ ...n, selected: false })), dupNode];
+    });
+    toast.success(`Duplicated "${originalLabel}"`);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNodes((nds) => nds.filter((n) => n.id !== id));
+    setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+    toast.info(`Deleted "${nodeData.label || stepType || 'Node'}"`);
+  };
 
   // Status styles
   let statusBorder = 'border-zinc-800';
   let statusBg = 'bg-zinc-900/90';
 
-  if (status === 'running') {
+  if (isDisabled) {
+    statusBorder = 'border-dashed border-zinc-700/80';
+    statusBg = 'bg-zinc-950/70 opacity-60 hover:opacity-100';
+  } else if (status === 'running') {
     statusBorder = 'border-cyan-400 shadow-lg shadow-cyan-500/30 ring-1 ring-cyan-400';
     statusBg = 'bg-cyan-950/40';
   } else if (status === 'success') {
@@ -86,25 +150,60 @@ export const WorkflowCustomNode = memo(({ data, selected }: NodeProps) => {
           <div className="p-1 rounded bg-zinc-800 border border-zinc-700/60">
             {STEP_ICONS[stepType] || <Send className="h-3.5 w-3.5" />}
           </div>
-          <span className="font-semibold text-zinc-100 truncate text-[12px] max-w-[130px]">
+          <span className={`font-semibold text-zinc-100 truncate text-[12px] max-w-[85px] ${isDisabled ? 'line-through text-zinc-400' : ''}`}>
             {label}
           </span>
         </div>
 
-        {/* Status Badge */}
-        <span
-          className={`text-[9px] font-mono px-1.5 py-0.2 rounded uppercase ${
-            status === 'running'
-              ? 'bg-cyan-950 text-cyan-400 border border-cyan-800 animate-pulse'
-              : status === 'success'
-              ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-              : status === 'failed'
-              ? 'bg-rose-950 text-rose-400 border border-rose-800'
-              : 'bg-zinc-800 text-zinc-400'
-          }`}
-        >
-          {status}
-        </span>
+        {/* Status Badge & Actions (Duplicate, Delete, Power) */}
+        <div className="flex items-center gap-1">
+          <span
+            className={`text-[9px] font-mono px-1.5 py-0.2 rounded uppercase ${
+              isDisabled
+                ? 'bg-zinc-800 text-zinc-500 border border-zinc-700'
+                : status === 'running'
+                ? 'bg-cyan-950 text-cyan-400 border border-cyan-800 animate-pulse'
+                : status === 'success'
+                ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                : status === 'failed'
+                ? 'bg-rose-950 text-rose-400 border border-rose-800'
+                : 'bg-zinc-800 text-zinc-400'
+            }`}
+          >
+            {isDisabled ? 'DISABLED' : status}
+          </span>
+
+          <button
+            type="button"
+            onClick={handleDuplicate}
+            title="Duplicate step (Ctrl+D)"
+            className="p-1 rounded text-zinc-500 hover:text-cyan-400 hover:bg-zinc-800 transition-colors"
+          >
+            <Copy className="h-3 w-3" />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDelete}
+            title="Delete step (Delete/Backspace)"
+            className="p-1 rounded text-zinc-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleToggleDisabled}
+            title={isDisabled ? 'Enable step' : 'Disable step (will be skipped)'}
+            className={`p-1 rounded transition-colors ${
+              isDisabled
+                ? 'text-amber-400 hover:text-emerald-400 bg-amber-950/40 hover:bg-emerald-950/40'
+                : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800'
+            }`}
+          >
+            <Power className="h-3 w-3" />
+          </button>
+        </div>
       </div>
 
       {/* Node Body / Summary */}

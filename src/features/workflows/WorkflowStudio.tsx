@@ -42,6 +42,7 @@ const edgeTypes = {
 export const WorkflowStudio: React.FC = () => {
   const {
     activeConnectionId,
+    setActiveConnectionId,
     connectionStatuses,
     addWorkflowLog,
     activeWorkflowId,
@@ -183,6 +184,63 @@ export const WorkflowStudio: React.FC = () => {
     if (selectedNodeId === nodeId) setSelectedNodeId(null);
   };
 
+  // Duplicate node
+  const handleDuplicateNode = (nodeId: string) => {
+    const nodeToDup = nodes.find((n) => n.id === nodeId);
+    if (!nodeToDup) return;
+
+    const newId = `node-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+    const originalLabel = String(nodeToDup.data?.label || nodeToDup.data?.stepType || 'Step');
+    const newLabel = `${originalLabel} (Copy)`;
+
+    const duplicatedNode: Node = {
+      ...nodeToDup,
+      id: newId,
+      position: {
+        x: (nodeToDup.position?.x ?? 200) + 40,
+        y: (nodeToDup.position?.y ?? 150) + 40,
+      },
+      selected: true,
+      data: {
+        ...JSON.parse(JSON.stringify(nodeToDup.data || {})),
+        label: newLabel,
+        status: 'idle',
+        lastError: undefined,
+      },
+    };
+
+    setNodes((nds) => [
+      ...nds.map((n) => ({ ...n, selected: false })),
+      duplicatedNode,
+    ]);
+    setSelectedNodeId(newId);
+    toast.success(`Duplicated "${originalLabel}"`);
+  };
+
+  // Shortcut Ctrl+D / Cmd+D to duplicate selected node
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+        if (selectedNodeId) {
+          e.preventDefault();
+          handleDuplicateNode(selectedNodeId);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedNodeId, nodes]);
+
   // Save current workflow graph
   const handleSaveWorkflow = () => {
     if (!currentWorkflow) return;
@@ -275,16 +333,38 @@ export const WorkflowStudio: React.FC = () => {
   };
 
   // RUN WORKFLOW
-  const handleRunWorkflow = async () => {
-    if (!activeConnectionId) {
-      toast.error('No broker selected. Select a broker from the top bar first.');
+  const handleRunWorkflow = async (fromNodeId?: string) => {
+    const { connectionProfiles } = useDataStore.getState();
+
+    // Resolve target connection profile
+    let targetConnectionId = activeConnectionId;
+    if (!targetConnectionId || !connectionProfiles.some((p) => p.id === targetConnectionId)) {
+      if (connectionProfiles.length > 0) {
+        targetConnectionId = connectionProfiles[0].id;
+        setActiveConnectionId(targetConnectionId);
+      } else {
+        toast.error('No broker profile found. Please create and connect a broker first.');
+        return;
+      }
+    }
+
+    const profile = connectionProfiles.find((p) => p.id === targetConnectionId);
+    if (!profile) {
+      toast.error('Broker profile not found.');
       return;
     }
 
-    const currentStatus = connectionStatuses[activeConnectionId]?.status || 'disconnected';
-    if (currentStatus !== 'connected') {
-      toast.error(`Active broker is ${currentStatus}. Connect before running workflow.`);
-      return;
+    // Ensure connection is active and connected in connectionManager
+    let adapter = connectionManager.getConnection(targetConnectionId);
+    if (!adapter || adapter.getStatus() !== 'connected') {
+      toast.loading(`Connecting to broker ${profile.name}...`, { id: 'conn-auto' });
+      try {
+        adapter = await connectionManager.connect(profile);
+        toast.success(`Connected to ${profile.name}`, { id: 'conn-auto' });
+      } catch (err: any) {
+        toast.error(`Cannot connect to broker: ${err.message}`, { id: 'conn-auto' });
+        return;
+      }
     }
 
     if (!currentWorkflow || nodes.length === 0) {
@@ -295,7 +375,7 @@ export const WorkflowStudio: React.FC = () => {
     // Reset status flags
     handleResetStatuses();
     setIsRunning(true);
-    setStatusText('Executing...');
+    setStatusText(fromNodeId ? 'Executing branch...' : 'Executing...');
 
     const executableWorkflow: WorkflowDefinition = {
       ...currentWorkflow,
@@ -303,7 +383,7 @@ export const WorkflowStudio: React.FC = () => {
       edges,
     };
 
-    const engine = new WorkflowEngine(executableWorkflow, activeConnectionId, connectionManager);
+    const engine = new WorkflowEngine(executableWorkflow, targetConnectionId, connectionManager);
     currentEngineRef.current = engine;
 
     // Listen to live step highlights
@@ -318,7 +398,7 @@ export const WorkflowStudio: React.FC = () => {
     });
 
     try {
-      const runRecord = await engine.run();
+      const runRecord = await engine.run(fromNodeId);
 
       // Log steps to global studio store for bottom panel
       runRecord.stepsLog.forEach((s) => addWorkflowLog(s));
@@ -449,6 +529,8 @@ export const WorkflowStudio: React.FC = () => {
             selectedNode={selectedNode}
             onUpdateNodeData={handleUpdateNodeData}
             onDeleteNode={handleDeleteNode}
+            onDuplicateNode={handleDuplicateNode}
+            onRunFromNode={handleRunWorkflow}
             onClose={() => setSelectedNodeId(null)}
           />
         )}

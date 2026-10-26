@@ -47,7 +47,7 @@ export class WorkflowEngine {
     return { ...this.context.variables, ...this.context };
   }
 
-  async run(): Promise<WorkflowRunRecord> {
+  async run(fromNodeId?: string): Promise<WorkflowRunRecord> {
     this.aborted = false;
     const runId = uuidv4();
     const startedAt = Date.now();
@@ -71,12 +71,26 @@ export class WorkflowEngine {
       return emptyRun;
     }
 
-    // Find starting nodes (all nodes without incoming edges)
-    const targets = new Set(edges.map((e: any) => e.target));
-    const startNodes = nodes.filter((n: any) => !targets.has(n.id));
+    let initialNodes: any[] = [];
 
-    // Fall back to first node if all nodes have incoming edges (e.g. cycle)
-    const initialNodes = startNodes.length > 0 ? startNodes : [nodes[0]];
+    if (fromNodeId) {
+      const targeted = nodes.find((n: any) => n.id === fromNodeId && !n.data?.disabled);
+      if (targeted) {
+        initialNodes = [targeted];
+      }
+    }
+
+    if (initialNodes.length === 0) {
+      // Find starting nodes (nodes without incoming active edges and not disabled)
+      const activeEdges = edges.filter((e: any) => !e.data?.disabled);
+      const targets = new Set(activeEdges.map((e: any) => e.target));
+      const startNodes = nodes.filter((n: any) => !targets.has(n.id) && !n.data?.disabled);
+
+      // Fall back to first non-disabled node if cycle or none found
+      initialNodes = startNodes.length > 0 
+        ? startNodes 
+        : nodes.filter((n: any) => !n.data?.disabled).slice(0, 1);
+    }
 
     // Execute all independent root pipelines in parallel
     const branchResults = await Promise.all(
@@ -85,7 +99,7 @@ export class WorkflowEngine {
       )
     );
 
-    const allSuccessful = branchResults.every(Boolean);
+    const allSuccessful = branchResults.length > 0 ? branchResults.every(Boolean) : true;
     let overallStatus: 'completed' | 'failed' | 'cancelled' = allSuccessful ? 'completed' : 'failed';
 
     if (this.aborted && overallStatus !== 'failed') {
@@ -115,8 +129,8 @@ export class WorkflowEngine {
     stepsLog: WorkflowStepRunLog[],
     visitCounts: Map<string, number>
   ): Promise<boolean> {
-    if (this.aborted) {
-      return false;
+    if (this.aborted || node.data?.disabled) {
+      return true; // Skip smoothly if aborted or node is disabled
     }
 
     const nodeId = node.id;
@@ -171,8 +185,8 @@ export class WorkflowEngine {
           return true;
         }
 
-        // Determine next outgoing edges
-        const outgoing = edges.filter((e: any) => e.source === nodeId);
+        // Determine next outgoing edges (ignore disabled edges)
+        const outgoing = edges.filter((e: any) => e.source === nodeId && !e.data?.disabled);
         if (outgoing.length === 0) {
           return true;
         }
@@ -183,10 +197,10 @@ export class WorkflowEngine {
           nextEdges = matched;
         }
 
-        // Resolve next target nodes
+        // Resolve next target nodes (ignore disabled nodes)
         const nextNodes = nextEdges
           .map((e: any) => nodes.find((n: any) => n.id === e.target))
-          .filter(Boolean);
+          .filter((n: any) => n && !n.data?.disabled);
 
         if (nextNodes.length === 0) {
           return true;

@@ -55,7 +55,7 @@ export class StepExecutors {
 
     return {
       success: true,
-      output: { topic, payloadLength: rawPayload.length, qos, retain },
+      output: { topic, payload: rawPayload, qos, retain },
     };
   }
 

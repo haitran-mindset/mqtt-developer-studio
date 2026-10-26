@@ -331,7 +331,9 @@ export class MQTTClientAdapter {
           this.addLog('error', `Failed to publish to ${topic}: ${err.message}`);
           reject(err);
         } else {
-          this.addLog('info', `Published message to ${topic} (QoS: ${options.qos || 0}, Size: ${payloadBuffer.length} B)`);
+          const payloadStr = typeof payload === 'string' ? payload : (payload instanceof Uint8Array || Buffer.isBuffer(payload)) ? new TextDecoder().decode(payload) : String(payload || '');
+          const preview = payloadStr.length > 200 ? payloadStr.slice(0, 200) + '...' : payloadStr;
+          this.addLog('info', `Published to ${topic}: ${preview} (QoS: ${options.qos || 0})`);
           resolve();
         }
       });

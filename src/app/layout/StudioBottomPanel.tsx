@@ -227,48 +227,88 @@ export const StudioBottomPanel: React.FC = () => {
         )}
 
         {bottomPanelTab === 'workflow_console' && (
-          <div>
+          <div className="space-y-1">
             {workflowLogs.length === 0 ? (
               <div className="text-zinc-600 text-center py-6 text-xs font-sans">
                 Workflow output is clean. Run a workflow in the Workflows tab to view execution steps.
               </div>
             ) : (
-              workflowLogs.map((log, index) => (
-                <div
-                  key={`${log.nodeId}-${index}`}
-                  className="flex items-start gap-2 py-1 px-1.5 hover:bg-zinc-900/60 rounded text-[11px]"
-                >
-                  <span className="text-zinc-500 shrink-0">
-                    {format(log.timestamp, 'HH:mm:ss.SSS')}
-                  </span>
+              workflowLogs.map((log, index) => {
+                const output = log.output;
+                const hasPayload = output && output.payload !== undefined;
+                const payloadStr = hasPayload
+                  ? typeof output.payload === 'object'
+                    ? JSON.stringify(output.payload)
+                    : String(output.payload)
+                  : null;
 
-                  <span>
-                    {log.status === 'success' ? (
-                      <Badge variant="emerald" className="py-0 px-1 text-[9px]">
-                        PASS
-                      </Badge>
-                    ) : log.status === 'failed' ? (
-                      <Badge variant="rose" className="py-0 px-1 text-[9px]">
-                        FAIL
-                      </Badge>
-                    ) : (
-                      <Badge variant="amber" className="py-0 px-1 text-[9px]">
-                        RUN
-                      </Badge>
+                return (
+                  <div
+                    key={`${log.nodeId}-${index}`}
+                    className="flex flex-col gap-1 py-1 px-2 hover:bg-zinc-900/60 rounded text-[11px] group border border-transparent hover:border-zinc-800/60 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-zinc-500 shrink-0 text-[10px]">
+                        {format(log.timestamp, 'HH:mm:ss.SSS')}
+                      </span>
+
+                      <span>
+                        {log.status === 'success' ? (
+                          <Badge variant="emerald" className="py-0 px-1 text-[9px]">
+                            PASS
+                          </Badge>
+                        ) : log.status === 'failed' ? (
+                          <Badge variant="rose" className="py-0 px-1 text-[9px]">
+                            FAIL
+                          </Badge>
+                        ) : (
+                          <Badge variant="amber" className="py-0 px-1 text-[9px]">
+                            RUN
+                          </Badge>
+                        )}
+                      </span>
+
+                      <span className="text-zinc-200 font-semibold">{log.stepName}</span>
+                      <span className="text-zinc-500 text-[10px]">({log.durationMs}ms)</span>
+
+                      {output?.topic && (
+                        <span className="text-cyan-400 font-mono text-[10px] bg-cyan-950/40 border border-cyan-800/40 px-1.5 py-0.2 rounded truncate max-w-sm">
+                          {output.topic}
+                        </span>
+                      )}
+
+                      {log.error && <span className="text-rose-400">{log.error}</span>}
+                    </div>
+
+                    {/* Display Payload clearly */}
+                    {hasPayload && (
+                      <div className="flex items-center gap-2 pl-4 text-[11px]">
+                        <span className="text-[10px] font-mono text-zinc-500 uppercase shrink-0 font-medium">Payload:</span>
+                        <code className="text-emerald-300 font-mono bg-zinc-900/90 px-2 py-0.5 rounded border border-zinc-800/80 break-all select-all flex-1">
+                          {payloadStr}
+                        </code>
+                        <button
+                          onClick={() => handleCopy(`${log.nodeId}-${index}`, payloadStr || '')}
+                          className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-cyan-400 text-zinc-500 transition-opacity"
+                          title="Copy Payload"
+                        >
+                          {copiedId === `${log.nodeId}-${index}` ? (
+                            <Check className="h-3 w-3 text-emerald-400" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </button>
+                      </div>
                     )}
-                  </span>
 
-                  <span className="text-zinc-300 font-semibold">{log.stepName}</span>
-                  <span className="text-zinc-500">({log.durationMs}ms)</span>
-
-                  {log.error && <span className="text-rose-400">{log.error}</span>}
-                  {log.output && (
-                    <span className="text-zinc-400 text-[10px] truncate max-w-md">
-                      {JSON.stringify(log.output)}
-                    </span>
-                  )}
-                </div>
-              ))
+                    {!hasPayload && output && Object.keys(output).length > 0 && !output.topic && (
+                      <div className="pl-4 text-[10px] text-zinc-400 truncate">
+                        {JSON.stringify(output)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         )}
