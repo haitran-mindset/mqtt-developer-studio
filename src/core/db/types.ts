@@ -35,6 +35,8 @@ export interface ConnectionProfile {
   connectTimeout: number; // in ms, default 10000
   reconnectPeriod: number; // in ms, default 4000
   sessionExpiryInterval?: number; // MQTT 5
+  ssl?: boolean;
+  sslSecure?: boolean;
   lwt?: LWTConfig;
   userProperties?: Record<string, string>; // MQTT 5
   isDefault?: boolean;

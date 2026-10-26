@@ -85,24 +85,25 @@ export class MQTTClientAdapter {
 
     if (typeof window !== 'undefined' && (this.profile.protocol === 'mqtt' || this.profile.protocol === 'mqtts')) {
       const suggestedProtocol = this.profile.protocol === 'mqtts' ? 'wss' : 'ws';
-      const suggestedPort = this.profile.protocol === 'mqtts' ? 8084 : 8083;
-      const errorMsg = `Web browsers cannot connect to raw TCP socket '${this.profile.protocol}://${this.profile.host}:${this.profile.port}'. Please switch Protocol to '${suggestedProtocol}://' (usually port ${suggestedPort}, path '/mqtt').`;
+      const suggestedPort = this.profile.protocol === 'mqtts' ? 443 : 80;
+      const errorMsg = `Web browsers cannot connect to raw TCP socket '${this.profile.protocol}://${this.profile.host}:${this.profile.port}'. Please switch Protocol to '${suggestedProtocol}://' (usually port ${suggestedPort} or 8084, path '/mqtt').`;
       this.setStatus('error', errorMsg);
       this.addLog('error', errorMsg);
       throw new Error(errorMsg);
     }
 
     const isWs = this.profile.protocol === 'ws' || this.profile.protocol === 'wss';
+    const port = this.profile.port || (isWs ? 443 : 1883);
     const path = isWs
-      ? this.profile.path
-        ? this.profile.path.startsWith('/')
+      ? this.profile.path !== undefined && this.profile.path !== null
+        ? this.profile.path.startsWith('/') || this.profile.path === ''
           ? this.profile.path
           : `/${this.profile.path}`
         : '/mqtt'
       : '';
     const brokerUrl = isWs
-      ? `${this.profile.protocol}://${this.profile.host}:${this.profile.port}${path}`
-      : `${this.profile.protocol}://${this.profile.host}:${this.profile.port}`;
+      ? `${this.profile.protocol}://${this.profile.host}:${port}${path}`
+      : `${this.profile.protocol}://${this.profile.host}:${port}`;
 
     this.addLog('info', `Connecting to ${brokerUrl}`);
 
@@ -116,6 +117,7 @@ export class MQTTClientAdapter {
       connectTimeout: this.profile.connectTimeout ?? 10000,
       reconnectPeriod: this.profile.reconnectPeriod ?? 4000,
       reschedulePings: true,
+      rejectUnauthorized: this.profile.sslSecure !== false,
     };
 
     if (this.profile.username) {

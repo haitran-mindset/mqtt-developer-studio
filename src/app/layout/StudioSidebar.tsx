@@ -3,6 +3,7 @@ import {
   Server,
   Plus,
   Trash2,
+  Pencil,
   Copy,
   Radio,
   FileCode,
@@ -19,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { PromptDialog } from '@/components/ui/prompt-dialog';
 import type { ConnectionProfile, PublishPreset, WorkflowDefinition } from '@/core/db/types';
 import { toast } from 'sonner';
 
@@ -49,10 +51,12 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
   const workflows = useDataStore((state) => state.workflows);
   const deleteConnectionProfile = useDataStore((state) => state.deleteConnectionProfile);
   const addConnectionProfile = useDataStore((state) => state.addConnectionProfile);
+  const updateWorkflow = useDataStore((state) => state.updateWorkflow);
   const deleteWorkflow = useDataStore((state) => state.deleteWorkflow);
 
   const [deleteProfileId, setDeleteProfileId] = useState<string | null>(null);
   const [deleteWorkflowTarget, setDeleteWorkflowTarget] = useState<WorkflowDefinition | null>(null);
+  const [renameWorkflowTarget, setRenameWorkflowTarget] = useState<WorkflowDefinition | null>(null);
 
   const handleConfirmDeleteProfile = async () => {
     if (!deleteProfileId) return;
@@ -73,6 +77,19 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
     }
     toast.success(`Workflow "${deleteWorkflowTarget.name}" deleted`);
     setDeleteWorkflowTarget(null);
+  };
+
+  const handleConfirmRenameWorkflow = (newName: string) => {
+    if (!renameWorkflowTarget) return;
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    updateWorkflow({
+      ...renameWorkflowTarget,
+      name: trimmed,
+      updatedAt: Date.now(),
+    });
+    toast.success(`Workflow renamed to "${trimmed}"`);
+    setRenameWorkflowTarget(null);
   };
 
   const handleDuplicateProfile = async (e: React.MouseEvent, p: ConnectionProfile) => {
@@ -276,16 +293,28 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-semibold text-zinc-100">{wf.name}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteWorkflowTarget(wf);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 text-zinc-400 hover:text-rose-400 transition-opacity"
-                      title="Delete Workflow"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRenameWorkflowTarget(wf);
+                        }}
+                        className="p-0.5 text-zinc-400 hover:text-cyan-400"
+                        title="Rename Workflow"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteWorkflowTarget(wf);
+                        }}
+                        className="p-0.5 text-zinc-400 hover:text-rose-400"
+                        title="Delete Workflow"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
                   </div>
                   <p className="text-[11px] text-zinc-400 line-clamp-2 mb-1.5">
                     {wf.description}
@@ -332,6 +361,19 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
         confirmText="Delete Workflow"
         variant="destructive"
         onConfirm={handleConfirmDeleteWorkflow}
+      />
+
+      {/* Rename Workflow Modal */}
+      <PromptDialog
+        open={!!renameWorkflowTarget}
+        onOpenChange={(open) => !open && setRenameWorkflowTarget(null)}
+        title="Rename Workflow"
+        description="Update the name of this automation workflow."
+        label="Workflow Name"
+        defaultValue={renameWorkflowTarget?.name || ''}
+        placeholder="e.g. Device Provisioning & Command Flow"
+        confirmText="Save Name"
+        onConfirm={handleConfirmRenameWorkflow}
       />
     </aside>
   );

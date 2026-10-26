@@ -7,6 +7,8 @@ import {
   FolderOpen,
   Plus,
   Sparkles,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +28,8 @@ interface WorkflowRunControlsProps {
   onReset: () => void;
   onSave: () => void;
   onNewWorkflow: () => void;
+  onRenameWorkflow?: () => void;
+  onDeleteWorkflow?: () => void;
   workflows: WorkflowDefinition[];
   currentWorkflow: WorkflowDefinition | null;
   onSelectWorkflow: (wf: WorkflowDefinition) => void;
@@ -39,6 +43,8 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
   onReset,
   onSave,
   onNewWorkflow,
+  onRenameWorkflow,
+  onDeleteWorkflow,
   workflows,
   currentWorkflow,
   onSelectWorkflow,
@@ -46,7 +52,7 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
 }) => {
   return (
     <div className="h-11 border-b border-zinc-800 bg-zinc-900/60 px-4 flex items-center justify-between select-none shrink-0 text-xs">
-      {/* Left: Workflow Picker & New */}
+      {/* Left: Workflow Picker & Actions */}
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1.5">
           <span className="text-[11px] text-zinc-400 font-medium">Workflow:</span>
@@ -74,6 +80,20 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
           )}
         </div>
 
+        {onRenameWorkflow && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onRenameWorkflow}
+            disabled={!currentWorkflow || isRunning}
+            className="h-7 text-xs flex items-center gap-1 text-zinc-300 hover:text-cyan-400 hover:border-cyan-500/50"
+            title="Edit Workflow Name"
+          >
+            <Pencil className="h-3 w-3" />
+            <span>Rename</span>
+          </Button>
+        )}
+
         <Button
           size="sm"
           variant="outline"
@@ -96,6 +116,19 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
           <Save className="h-3 w-3" />
           <span>Save</span>
         </Button>
+
+        {onDeleteWorkflow && (
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onDeleteWorkflow}
+            disabled={!currentWorkflow || isRunning || workflows.length <= 1}
+            className="h-7 w-7 text-zinc-400 hover:text-rose-400 hover:bg-zinc-800"
+            title="Delete Current Workflow"
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        )}
       </div>
 
       {/* Right: Run, Abort, Reset */}

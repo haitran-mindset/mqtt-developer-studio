@@ -26,7 +26,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Info } from "lucide-react";
 import type {
   ConnectionProfile,
   Protocol,
@@ -40,13 +40,19 @@ const connectionSchema = z.object({
   name: z.string().min(1, "Connection name is required"),
   protocol: z.enum(["mqtt", "mqtts", "ws", "wss"]),
   host: z.string().min(1, "Host is required"),
-  port: z.coerce.number().min(1).max(65535),
+  port: z.preprocess((val) => {
+    if (val === "" || val === undefined || val === null) return 443;
+    const num = Number(val);
+    return isNaN(num) ? 443 : num;
+  }, z.number().min(1).max(65535)),
   path: z.string().optional().default("/mqtt"),
   clientId: z.string().min(1, "Client ID is required"),
   username: z.string().optional(),
   password: z.string().optional(),
   mqttVersion: z.enum(["3.1.1", "5.0"]),
   clean: z.boolean(),
+  ssl: z.boolean().default(true),
+  sslSecure: z.boolean().default(true),
   keepalive: z.coerce.number().min(0).max(3600),
   connectTimeout: z.coerce.number().min(1000).max(60000),
   reconnectPeriod: z.coerce.number().min(0).max(60000),
@@ -87,13 +93,15 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
       name: "My MQTT Broker",
       protocol: "wss",
       host: "broker.emqx.io",
-      port: 8084,
+      port: 443,
       path: "/mqtt",
       clientId: `mqtt_studio_${Math.random().toString(16).substring(2, 8)}`,
       username: "",
       password: "",
       mqttVersion: "5.0",
       clean: true,
+      ssl: true,
+      sslSecure: true,
       keepalive: 60,
       connectTimeout: 10000,
       reconnectPeriod: 4000,
@@ -107,6 +115,8 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
   });
 
   const protocol = watch("protocol");
+  const ssl = watch("ssl");
+  const sslSecure = watch("sslSecure");
   const lwtEnabled = watch("lwtEnabled");
   const mqttVersion = watch("mqttVersion");
 
@@ -115,6 +125,8 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
       reset({
         name: profile.name,
         protocol: profile.protocol,
+        ssl: profile.ssl ?? (profile.protocol === "wss" || profile.protocol === "mqtts"),
+        sslSecure: profile.sslSecure ?? true,
         host: profile.host,
         port: profile.port,
         path: profile.path,
@@ -137,8 +149,10 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
       reset({
         name: "",
         protocol: "wss",
+        ssl: true,
+        sslSecure: true,
         host: "",
-        port: 8084,
+        port: 443,
         path: "/mqtt",
         clientId: `mqtt_studio_${Math.random().toString(16).substring(2, 8)}`,
         username: "",
@@ -164,6 +178,8 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         id: profile?.id || `broker-${Date.now()}`,
         name: values.name,
         protocol: values.protocol,
+        ssl: values.ssl,
+        sslSecure: values.sslSecure,
         host: values.host,
         port: values.port,
         path: values.path,
@@ -200,6 +216,27 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
       onOpenChange(false);
     } catch (err: any) {
       toast.error(`Error saving profile: ${err.message}`);
+    }
+  };
+
+  const handleToggleSsl = (checked: boolean) => {
+    setValue("ssl", checked);
+    if (checked) {
+      if (protocol === "ws") {
+        setValue("protocol", "wss");
+        setValue("port", 443);
+      } else if (protocol === "mqtt") {
+        setValue("protocol", "mqtts");
+        setValue("port", 8883);
+      }
+    } else {
+      if (protocol === "wss") {
+        setValue("protocol", "ws");
+        setValue("port", 80);
+      } else if (protocol === "mqtts") {
+        setValue("protocol", "mqtt");
+        setValue("port", 1883);
+      }
     }
   };
 
@@ -249,24 +286,9 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-[11px] font-medium text-zinc-300">
-                  Client ID
-                </Label>
-                <button
-                  type="button"
-                  onClick={handleRandomClientId}
-                  className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer font-mono group"
-                  title="Generate random Client ID"
-                >
-                  <RefreshCw
-                    className={`h-3 w-3 transition-transform duration-500 ${
-                      isRandomizing ? "animate-spin text-cyan-300" : "group-hover:rotate-45"
-                    }`}
-                  />
-                  <span>Random</span>
-                </button>
-              </div>
+              <Label className="text-[11px] font-medium text-zinc-300">
+                Client ID
+              </Label>
               <div className="relative flex items-center">
                 <Input
                   {...register("clientId")}
@@ -311,6 +333,8 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                 onValueChange={(val) => {
                   const p = val as Protocol;
                   setValue("protocol", p);
+                  const isSsl = p === "wss" || p === "mqtts";
+                  setValue("ssl", isSsl);
                   if (p === "mqtt") {
                     setValue("port", 1883);
                     setValue("path", "");
@@ -318,10 +342,10 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                     setValue("port", 8883);
                     setValue("path", "");
                   } else if (p === "ws") {
-                    setValue("port", 8083);
+                    setValue("port", 443);
                     setValue("path", "/mqtt");
                   } else if (p === "wss") {
-                    setValue("port", 8084);
+                    setValue("port", 443);
                     setValue("path", "/mqtt");
                   }
                 }}
@@ -354,7 +378,69 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
               <Label className="text-[11px] font-medium text-zinc-300">
                 Port
               </Label>
-              <Input type="number" {...register("port")} placeholder="8084" />
+              <Input type="number" {...register("port")} placeholder="443" />
+              <div className="flex items-center flex-wrap gap-1 pt-0.5">
+                {(protocol === "wss" || protocol === "ws") && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setValue("port", 443)}
+                      className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-cyan-950 hover:text-cyan-400 font-mono text-zinc-400 border border-zinc-700/60 transition-colors"
+                      title="Port 443 (Standard SSL/HTTPS WebSocket)"
+                    >
+                      443
+                    </button>
+                    {protocol === "wss" && (
+                      <button
+                        type="button"
+                        onClick={() => setValue("port", 8084)}
+                        className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 font-mono text-zinc-400 border border-zinc-700/60 transition-colors"
+                        title="Port 8084 (EMQX WSS)"
+                      >
+                        8084
+                      </button>
+                    )}
+                    {protocol === "ws" && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setValue("port", 80)}
+                          className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 font-mono text-zinc-400 border border-zinc-700/60 transition-colors"
+                          title="Port 80 (Standard HTTP WebSocket)"
+                        >
+                          80
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setValue("port", 8083)}
+                          className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 font-mono text-zinc-400 border border-zinc-700/60 transition-colors"
+                          title="Port 8083 (EMQX WS)"
+                        >
+                          8083
+                        </button>
+                      </>
+                    )}
+                  </>
+                )}
+                {protocol === "mqtt" && (
+                  <button
+                    type="button"
+                    onClick={() => setValue("port", 1883)}
+                    className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 font-mono text-zinc-400 border border-zinc-700/60"
+                  >
+                    1883
+                  </button>
+                )}
+                {protocol === "mqtts" && (
+                  <button
+                    type="button"
+                    onClick={() => setValue("port", 8883)}
+                    className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 font-mono text-zinc-400 border border-zinc-700/60"
+                  >
+                    8883
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="col-span-2 space-y-1.5">
@@ -377,7 +463,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                   <span className="font-mono">{protocol}://</span>). For secure
                   encrypted connections in the browser, please use{" "}
                   <strong className="text-cyan-400 font-mono">wss://</strong>{" "}
-                  (usually port 8084, path /mqtt).
+                  (usually port 443 or 8084, path /mqtt).
                 </div>
                 <Button
                   type="button"
@@ -385,7 +471,8 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                   variant="outline"
                   onClick={() => {
                     setValue("protocol", "wss");
-                    setValue("port", 8084);
+                    setValue("ssl", true);
+                    setValue("port", 443);
                     setValue("path", "/mqtt");
                   }}
                   className="h-7 text-[10px] border-cyan-500/50 hover:bg-cyan-950/50 text-cyan-300 shrink-0 shadow-sm"
@@ -418,6 +505,49 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                 placeholder="••••••••"
               />
             </div>
+          </div>
+
+          {/* Section: SSL/TLS & SSL Secure */}
+          <div className="pt-2 border-t border-zinc-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="ssl-tls" className="text-xs font-medium text-zinc-300 cursor-pointer">
+                SSL/TLS
+              </Label>
+              <Switch
+                id="ssl-tls"
+                checked={!!ssl}
+                onCheckedChange={handleToggleSsl}
+                className="data-[state=checked]:bg-[#10b981]"
+              />
+            </div>
+
+            {ssl && (
+              <div className="flex items-center justify-between">
+                <Label htmlFor="ssl-secure" className="text-xs font-medium text-zinc-300 cursor-pointer">
+                  SSL Secure
+                </Label>
+                <div className="flex items-center gap-1.5">
+                  <Switch
+                    id="ssl-secure"
+                    checked={!!sslSecure}
+                    onCheckedChange={(val) => setValue("sslSecure", val)}
+                    className="data-[state=checked]:bg-[#10b981]"
+                  />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-zinc-400 hover:text-zinc-200 cursor-help inline-flex items-center">
+                          <Info className="h-3.5 w-3.5" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent className="text-xs max-w-xs font-sans">
+                        Validate certificate chain & hostname (rejectUnauthorized). Disable to connect to servers with self-signed certificates.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Section: Protocol Details */}
@@ -568,7 +698,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
               disabled={isSubmitting}
               className="font-semibold"
             >
-              {profile ? "Save Changes" : "Create Profile"}
+              {profile ? "Save Changes" : "Create"}
             </Button>
           </div>
         </form>

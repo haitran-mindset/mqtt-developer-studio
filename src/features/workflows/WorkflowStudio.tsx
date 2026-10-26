@@ -19,6 +19,7 @@ import { WorkflowNodePalette } from './WorkflowNodePalette';
 import { WorkflowNodeInspector } from './WorkflowNodeInspector';
 import { WorkflowRunControls } from './WorkflowRunControls';
 import { PromptDialog } from '@/components/ui/prompt-dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { WorkflowEngine } from '@/core/workflow/WorkflowEngine';
 import { useStudioStore } from '@/app/store/studioStore';
 import { useDataStore } from '@/core/store/dataStore';
@@ -50,6 +51,7 @@ export const WorkflowStudio: React.FC = () => {
   const workflows = useDataStore((state) => state.workflows);
   const addWorkflow = useDataStore((state) => state.addWorkflow);
   const updateWorkflow = useDataStore((state) => state.updateWorkflow);
+  const deleteWorkflow = useDataStore((state) => state.deleteWorkflow);
 
   const currentWorkflow =
     workflows.find((w) => w.id === activeWorkflowId) || workflows[0] || null;
@@ -58,6 +60,8 @@ export const WorkflowStudio: React.FC = () => {
   const [edges, setEdges] = useState<Edge[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [newWorkflowDialogOpen, setNewWorkflowDialogOpen] = useState(false);
+  const [renameWorkflowDialogOpen, setRenameWorkflowDialogOpen] = useState(false);
+  const [deleteWorkflowDialogOpen, setDeleteWorkflowDialogOpen] = useState(false);
 
   const [isRunning, setIsRunning] = useState(false);
   const [statusText, setStatusText] = useState<string>('');
@@ -216,6 +220,49 @@ export const WorkflowStudio: React.FC = () => {
     toast.success(`Workflow "${name}" created!`);
   };
 
+  // Rename current workflow
+  const handleRenameWorkflow = () => {
+    if (!currentWorkflow) return;
+    setRenameWorkflowDialogOpen(true);
+  };
+
+  const handleConfirmRenameWorkflow = (newName: string) => {
+    if (!currentWorkflow) return;
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+
+    const updated: WorkflowDefinition = {
+      ...currentWorkflow,
+      name: trimmed,
+      nodes,
+      edges,
+      updatedAt: Date.now(),
+    };
+
+    updateWorkflow(updated);
+    toast.success(`Workflow renamed to "${trimmed}"`);
+  };
+
+  // Delete current workflow
+  const handleDeleteWorkflow = () => {
+    if (!currentWorkflow) return;
+    setDeleteWorkflowDialogOpen(true);
+  };
+
+  const handleConfirmDeleteWorkflow = () => {
+    if (!currentWorkflow) return;
+    const idToDelete = currentWorkflow.id;
+    const nameToDelete = currentWorkflow.name;
+    const remaining = workflows.filter((w) => w.id !== idToDelete);
+    deleteWorkflow(idToDelete);
+    if (remaining.length > 0) {
+      setActiveWorkflowId(remaining[0].id);
+    } else {
+      setActiveWorkflowId(null);
+    }
+    toast.info(`Deleted workflow "${nameToDelete}"`);
+  };
+
   // Reset node status markers
   const handleResetStatuses = () => {
     setNodes((nds) =>
@@ -315,6 +362,8 @@ export const WorkflowStudio: React.FC = () => {
         onReset={handleResetStatuses}
         onSave={handleSaveWorkflow}
         onNewWorkflow={handleNewWorkflow}
+        onRenameWorkflow={handleRenameWorkflow}
+        onDeleteWorkflow={handleDeleteWorkflow}
         workflows={workflows}
         currentWorkflow={currentWorkflow}
         onSelectWorkflow={(wf) => setActiveWorkflowId(wf.id)}
@@ -416,6 +465,30 @@ export const WorkflowStudio: React.FC = () => {
         placeholder="e.g. Device Provisioning & Command Flow"
         confirmText="Create Workflow"
         onConfirm={handleConfirmNewWorkflow}
+      />
+
+      {/* Rename Workflow Modal */}
+      <PromptDialog
+        open={renameWorkflowDialogOpen}
+        onOpenChange={setRenameWorkflowDialogOpen}
+        title="Rename Workflow"
+        description="Update the name of the active automation workflow."
+        label="Workflow Name"
+        defaultValue={currentWorkflow?.name || ''}
+        placeholder="e.g. Device Provisioning & Command Flow"
+        confirmText="Save Name"
+        onConfirm={handleConfirmRenameWorkflow}
+      />
+
+      {/* Delete Workflow Confirmation */}
+      <ConfirmDialog
+        open={deleteWorkflowDialogOpen}
+        onOpenChange={setDeleteWorkflowDialogOpen}
+        title="Delete Workflow"
+        description={`Are you sure you want to delete "${currentWorkflow?.name}"? All nodes, connections, and step configurations will be permanently removed.`}
+        confirmText="Delete Workflow"
+        variant="destructive"
+        onConfirm={handleConfirmDeleteWorkflow}
       />
     </div>
   );
