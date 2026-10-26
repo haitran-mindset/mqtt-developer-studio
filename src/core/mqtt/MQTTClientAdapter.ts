@@ -115,7 +115,7 @@ export class MQTTClientAdapter {
       clean: this.profile.clean,
       keepalive: this.profile.keepalive ?? 60,
       connectTimeout: this.profile.connectTimeout ?? 10000,
-      reconnectPeriod: this.profile.reconnectPeriod ?? 4000,
+      reconnectPeriod: this.profile.autoReconnect === false ? 0 : (this.profile.reconnectPeriod ?? 4000),
       reschedulePings: true,
       rejectUnauthorized: this.profile.sslSecure !== false,
     };

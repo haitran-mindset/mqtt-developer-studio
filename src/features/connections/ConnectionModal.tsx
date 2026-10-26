@@ -26,7 +26,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { RefreshCw, Info } from "lucide-react";
+import { RefreshCw, HelpCircle, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type {
   ConnectionProfile,
   Protocol,
@@ -56,6 +57,7 @@ const connectionSchema = z.object({
   keepalive: z.coerce.number().min(0).max(3600),
   connectTimeout: z.coerce.number().min(1000).max(60000),
   reconnectPeriod: z.coerce.number().min(0).max(60000),
+  autoReconnect: z.boolean().default(true),
   sessionExpiryInterval: z.coerce.number().optional(),
   // LWT
   lwtEnabled: z.boolean(),
@@ -105,6 +107,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
       keepalive: 60,
       connectTimeout: 10000,
       reconnectPeriod: 4000,
+      autoReconnect: true,
       sessionExpiryInterval: 3600,
       lwtEnabled: false,
       lwtTopic: "",
@@ -117,8 +120,11 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
   const protocol = watch("protocol");
   const ssl = watch("ssl");
   const sslSecure = watch("sslSecure");
+  const autoReconnect = watch("autoReconnect");
   const lwtEnabled = watch("lwtEnabled");
   const mqttVersion = watch("mqttVersion");
+
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -138,6 +144,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         keepalive: profile.keepalive,
         connectTimeout: profile.connectTimeout,
         reconnectPeriod: profile.reconnectPeriod,
+        autoReconnect: profile.autoReconnect ?? (profile.reconnectPeriod !== 0),
         sessionExpiryInterval: profile.sessionExpiryInterval,
         lwtEnabled: !!profile.lwt?.enabled,
         lwtTopic: profile.lwt?.topic || "",
@@ -162,6 +169,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         keepalive: 60,
         connectTimeout: 10000,
         reconnectPeriod: 4000,
+        autoReconnect: true,
         sessionExpiryInterval: 3600,
         lwtEnabled: false,
         lwtTopic: "",
@@ -190,7 +198,8 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         clean: values.clean,
         keepalive: values.keepalive,
         connectTimeout: values.connectTimeout,
-        reconnectPeriod: values.reconnectPeriod,
+        reconnectPeriod: values.autoReconnect ? values.reconnectPeriod : 0,
+        autoReconnect: values.autoReconnect,
         sessionExpiryInterval: values.sessionExpiryInterval,
         lwt: values.lwtEnabled
           ? {
@@ -508,40 +517,52 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
           </div>
 
           {/* Section: SSL/TLS & SSL Secure */}
-          <div className="pt-2 border-t border-zinc-800 space-y-3">
+          <div className="pt-2 border-t border-zinc-800 space-y-2.5">
             <div className="flex items-center justify-between">
-              <Label htmlFor="ssl-tls" className="text-xs font-medium text-zinc-300 cursor-pointer">
-                SSL/TLS
-              </Label>
+              <div>
+                <span className="text-xs font-medium text-zinc-200">
+                  SSL/TLS
+                </span>
+                <p className="text-[10px] text-zinc-500">
+                  Enable secure encrypted connection (wss:// or mqtts://)
+                </p>
+              </div>
               <Switch
                 id="ssl-tls"
                 checked={!!ssl}
                 onCheckedChange={handleToggleSsl}
-                className="data-[state=checked]:bg-[#10b981]"
               />
             </div>
 
             {ssl && (
               <div className="flex items-center justify-between">
-                <Label htmlFor="ssl-secure" className="text-xs font-medium text-zinc-300 cursor-pointer">
-                  SSL Secure
-                </Label>
+                <div>
+                  <span className="text-xs font-medium text-zinc-200">
+                    SSL Secure
+                  </span>
+                  <p className="text-[10px] text-zinc-500">
+                    Verify server certificate chain and host name
+                  </p>
+                </div>
                 <div className="flex items-center gap-1.5">
                   <Switch
                     id="ssl-secure"
                     checked={!!sslSecure}
                     onCheckedChange={(val) => setValue("sslSecure", val)}
-                    className="data-[state=checked]:bg-[#10b981]"
                   />
-                  <TooltipProvider>
+                  <TooltipProvider delayDuration={100}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span className="text-zinc-400 hover:text-zinc-200 cursor-help inline-flex items-center">
-                          <Info className="h-3.5 w-3.5" />
-                        </span>
+                        <button
+                          type="button"
+                          className="text-zinc-400 hover:text-cyan-400 cursor-help inline-flex items-center p-0.5 rounded focus:outline-none transition-colors"
+                          title="Certificate verification info"
+                        >
+                          <HelpCircle className="h-3.5 w-3.5" />
+                        </button>
                       </TooltipTrigger>
-                      <TooltipContent className="text-xs max-w-xs font-sans">
-                        Validate certificate chain & hostname (rejectUnauthorized). Disable to connect to servers with self-signed certificates.
+                      <TooltipContent side="top" className="text-xs max-w-xs font-sans">
+                        Whether a client verifies the server&apos;s certificate chain and host name
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -550,135 +571,186 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
             )}
           </div>
 
-          {/* Section: Protocol Details */}
-          <div className="grid grid-cols-4 gap-3 pt-2 border-t border-zinc-800">
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-medium text-zinc-300">
-                MQTT Version
-              </Label>
-              <Select
-                value={mqttVersion}
-                onValueChange={(val) =>
-                  setValue("mqttVersion", val as MQTTVersion)
-                }
-              >
-                <SelectTrigger className="w-full h-8">
-                  <SelectValue placeholder="Version" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5.0">MQTT 5.0</SelectItem>
-                  <SelectItem value="3.1.1">MQTT 3.1.1</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-medium text-zinc-300">
-                Keep Alive (s)
-              </Label>
-              <Input type="number" {...register("keepalive")} />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-medium text-zinc-300">
-                Timeout (ms)
-              </Label>
-              <Input type="number" {...register("connectTimeout")} />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-medium text-zinc-300">
-                Reconnect (ms)
-              </Label>
-              <Input type="number" {...register("reconnectPeriod")} />
-            </div>
-          </div>
-
-          {/* Clean session switch */}
-          <div className="flex items-center justify-between py-1 border-t border-zinc-800">
-            <div>
-              <span className="text-xs font-medium text-zinc-200">
-                {mqttVersion === "5.0" ? "Clean Start" : "Clean Session"}
-              </span>
-              <p className="text-[10px] text-zinc-500">
-                Discard previous session state on connecting
-              </p>
-            </div>
-            <Switch
-              checked={watch("clean")}
-              onCheckedChange={(checked) => setValue("clean", checked)}
-            />
-          </div>
-
-          {/* Section: Last Will and Testament (LWT) */}
-          <div className="pt-2 border-t border-zinc-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xs font-medium text-zinc-200">
-                  Last Will & Testament (LWT)
+          {/* Section: Advanced (Collapsible) */}
+          <div className="pt-2 border-t border-zinc-800">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="flex items-center justify-between w-full py-2 text-xs font-semibold text-zinc-300 hover:text-zinc-100 transition-colors group cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <span>Advanced</span>
+                <span className="text-[10px] text-zinc-500 font-normal">
+                  (MQTT Version, Keep Alive, Timeout, LWT...)
                 </span>
-                <p className="text-[10px] text-zinc-500">
-                  Broker publishes this message if client disconnects
-                  ungracefully
-                </p>
               </div>
-              <Switch
-                checked={lwtEnabled}
-                onCheckedChange={(checked) => setValue("lwtEnabled", checked)}
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 text-zinc-400 group-hover:text-zinc-200 transition-transform duration-200",
+                  showAdvanced ? "rotate-180 text-cyan-400" : ""
+                )}
               />
-            </div>
+            </button>
 
-            {lwtEnabled && (
-              <div className="grid grid-cols-12 gap-3 p-3 bg-zinc-900/60 rounded-md border border-zinc-800">
-                <div className="col-span-6 space-y-1.5">
-                  <Label className="text-[10px] font-mono text-zinc-400">
-                    LWT Topic
-                  </Label>
-                  <Input
-                    {...register("lwtTopic")}
-                    placeholder="device/status"
-                  />
+            {showAdvanced && (
+              <div className="space-y-3 pt-2">
+                {/* Protocol Details Grid */}
+                <div className="grid grid-cols-4 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-medium text-zinc-300">
+                      MQTT Version
+                    </Label>
+                    <Select
+                      value={mqttVersion}
+                      onValueChange={(val) =>
+                        setValue("mqttVersion", val as MQTTVersion)
+                      }
+                    >
+                      <SelectTrigger className="w-full h-8">
+                        <SelectValue placeholder="Version" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5.0">MQTT 5.0</SelectItem>
+                        <SelectItem value="3.1.1">MQTT 3.1.1</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-medium text-zinc-300">
+                      Keep Alive (s)
+                    </Label>
+                    <Input type="number" {...register("keepalive")} />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-medium text-zinc-300">
+                      Timeout (ms)
+                    </Label>
+                    <Input type="number" {...register("connectTimeout")} />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-medium text-zinc-300">
+                      Reconnect (ms)
+                    </Label>
+                    <Input
+                      type="number"
+                      disabled={!autoReconnect}
+                      {...register("reconnectPeriod")}
+                      className={!autoReconnect ? "opacity-50 cursor-not-allowed" : ""}
+                    />
+                  </div>
                 </div>
 
-                <div className="col-span-3 space-y-1.5">
-                  <Label className="text-[10px] font-mono text-zinc-400">
-                    LWT QoS
-                  </Label>
-                  <Select
-                    value={String(watch("lwtQos") ?? 0)}
-                    onValueChange={(val) =>
-                      setValue("lwtQos", Number(val) as QoS)
-                    }
-                  >
-                    <SelectTrigger className="w-full h-8">
-                      <SelectValue placeholder="QoS" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">0 - At most once</SelectItem>
-                      <SelectItem value="1">1 - At least once</SelectItem>
-                      <SelectItem value="2">2 - Exactly once</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="col-span-3 flex items-center gap-2 pt-6">
+                {/* Auto Reconnect switch */}
+                <div className="flex items-center justify-between py-1 border-t border-zinc-800">
+                  <div>
+                    <span className="text-xs font-medium text-zinc-200">
+                      Auto Reconnect
+                    </span>
+                    <p className="text-[10px] text-zinc-500">
+                      Automatically reconnect to the broker if connection drops
+                    </p>
+                  </div>
                   <Switch
-                    checked={watch("lwtRetain")}
-                    onCheckedChange={(val) => setValue("lwtRetain", val)}
+                    checked={!!autoReconnect}
+                    onCheckedChange={(checked) => {
+                      setValue("autoReconnect", checked);
+                      if (checked && watch("reconnectPeriod") === 0) {
+                        setValue("reconnectPeriod", 4000);
+                      }
+                    }}
                   />
-                  <Label className="text-[11px] text-zinc-300 cursor-pointer">
-                    Retain
-                  </Label>
                 </div>
 
-                <div className="col-span-12 space-y-1.5">
-                  <Label className="text-[10px] font-mono text-zinc-400">
-                    LWT Payload
-                  </Label>
-                  <Input
-                    {...register("lwtPayload")}
-                    placeholder='{"status": "offline"}'
+                {/* Clean session switch */}
+                <div className="flex items-center justify-between py-1 border-t border-zinc-800">
+                  <div>
+                    <span className="text-xs font-medium text-zinc-200">
+                      {mqttVersion === "5.0" ? "Clean Start" : "Clean Session"}
+                    </span>
+                    <p className="text-[10px] text-zinc-500">
+                      Discard previous session state on connecting
+                    </p>
+                  </div>
+                  <Switch
+                    checked={watch("clean")}
+                    onCheckedChange={(checked) => setValue("clean", checked)}
                   />
+                </div>
+
+                {/* Section: Last Will and Testament (LWT) */}
+                <div className="pt-1 border-t border-zinc-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-medium text-zinc-200">
+                        Last Will & Testament (LWT)
+                      </span>
+                      <p className="text-[10px] text-zinc-500">
+                        Broker publishes this message if client disconnects ungracefully
+                      </p>
+                    </div>
+                    <Switch
+                      checked={lwtEnabled}
+                      onCheckedChange={(checked) => setValue("lwtEnabled", checked)}
+                    />
+                  </div>
+
+                  {lwtEnabled && (
+                    <div className="grid grid-cols-12 gap-3 p-3 bg-zinc-900/60 rounded-md border border-zinc-800">
+                      <div className="col-span-6 space-y-1.5">
+                        <Label className="text-[10px] font-mono text-zinc-400">
+                          LWT Topic
+                        </Label>
+                        <Input
+                          {...register("lwtTopic")}
+                          placeholder="device/status"
+                        />
+                      </div>
+
+                      <div className="col-span-3 space-y-1.5">
+                        <Label className="text-[10px] font-mono text-zinc-400">
+                          LWT QoS
+                        </Label>
+                        <Select
+                          value={String(watch("lwtQos") ?? 0)}
+                          onValueChange={(val) =>
+                            setValue("lwtQos", Number(val) as QoS)
+                          }
+                        >
+                          <SelectTrigger className="w-full h-8">
+                            <SelectValue placeholder="QoS" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="0">0 - At most once</SelectItem>
+                            <SelectItem value="1">1 - At least once</SelectItem>
+                            <SelectItem value="2">2 - Exactly once</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="col-span-3 flex items-center gap-2 pt-6">
+                        <Switch
+                          checked={watch("lwtRetain")}
+                          onCheckedChange={(val) => setValue("lwtRetain", val)}
+                        />
+                        <Label className="text-[11px] text-zinc-300 cursor-pointer">
+                          Retain
+                        </Label>
+                      </div>
+
+                      <div className="col-span-12 space-y-1.5">
+                        <Label className="text-[10px] font-mono text-zinc-400">
+                          LWT Payload
+                        </Label>
+                        <Input
+                          {...register("lwtPayload")}
+                          placeholder='{"status": "offline"}'
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

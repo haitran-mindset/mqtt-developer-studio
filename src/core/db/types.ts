@@ -34,6 +34,7 @@ export interface ConnectionProfile {
   keepalive: number; // in seconds, default 60
   connectTimeout: number; // in ms, default 10000
   reconnectPeriod: number; // in ms, default 4000
+  autoReconnect?: boolean;
   sessionExpiryInterval?: number; // MQTT 5
   ssl?: boolean;
   sslSecure?: boolean;

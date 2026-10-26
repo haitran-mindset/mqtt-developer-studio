@@ -51,12 +51,14 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
   const workflows = useDataStore((state) => state.workflows);
   const deleteConnectionProfile = useDataStore((state) => state.deleteConnectionProfile);
   const addConnectionProfile = useDataStore((state) => state.addConnectionProfile);
+  const addWorkflow = useDataStore((state) => state.addWorkflow);
   const updateWorkflow = useDataStore((state) => state.updateWorkflow);
   const deleteWorkflow = useDataStore((state) => state.deleteWorkflow);
 
   const [deleteProfileId, setDeleteProfileId] = useState<string | null>(null);
   const [deleteWorkflowTarget, setDeleteWorkflowTarget] = useState<WorkflowDefinition | null>(null);
   const [renameWorkflowTarget, setRenameWorkflowTarget] = useState<WorkflowDefinition | null>(null);
+  const [newWorkflowDialogOpen, setNewWorkflowDialogOpen] = useState(false);
 
   const handleConfirmDeleteProfile = async () => {
     if (!deleteProfileId) return;
@@ -90,6 +92,23 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
     });
     toast.success(`Workflow renamed to "${trimmed}"`);
     setRenameWorkflowTarget(null);
+  };
+
+  const handleConfirmNewWorkflow = (name: string) => {
+    const newWf: WorkflowDefinition = {
+      id: `workflow-${Date.now()}`,
+      name,
+      description: 'Custom automated MQTT scenario',
+      nodes: [],
+      edges: [],
+      variables: {},
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    addWorkflow(newWf);
+    setActiveWorkflowId(newWf.id);
+    toast.success(`Workflow "${name}" created!`);
   };
 
   const handleDuplicateProfile = async (e: React.MouseEvent, p: ConnectionProfile) => {
@@ -147,6 +166,19 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
           >
             <Plus className="h-3.5 w-3.5 mr-0.5" />
             <span className="text-[11px]">Add</span>
+          </Button>
+        )}
+
+        {activeTab === 'workflows' && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setNewWorkflowDialogOpen(true)}
+            className="h-6 px-1.5 text-cyan-400 hover:text-cyan-300 hover:bg-zinc-800"
+            title="Create New Workflow"
+          >
+            <Plus className="h-3.5 w-3.5 mr-0.5" />
+            <span className="text-[11px]">New</span>
           </Button>
         )}
       </div>
@@ -374,6 +406,19 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
         placeholder="e.g. Device Provisioning & Command Flow"
         confirmText="Save Name"
         onConfirm={handleConfirmRenameWorkflow}
+      />
+
+      {/* New Workflow Modal */}
+      <PromptDialog
+        open={newWorkflowDialogOpen}
+        onOpenChange={setNewWorkflowDialogOpen}
+        title="Create New Workflow"
+        description="Enter a descriptive name for your visual automation flow."
+        label="Workflow Name"
+        defaultValue="New Automation Workflow"
+        placeholder="e.g. Device Provisioning & Command Flow"
+        confirmText="Create Workflow"
+        onConfirm={handleConfirmNewWorkflow}
       />
     </aside>
   );

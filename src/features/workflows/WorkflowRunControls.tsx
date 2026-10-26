@@ -27,7 +27,7 @@ interface WorkflowRunControlsProps {
   onAbort: () => void;
   onReset: () => void;
   onSave: () => void;
-  onNewWorkflow: () => void;
+  onNewWorkflow?: () => void;
   onRenameWorkflow?: () => void;
   onDeleteWorkflow?: () => void;
   workflows: WorkflowDefinition[];
@@ -94,16 +94,19 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
           </Button>
         )}
 
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onNewWorkflow}
-          className="h-7 text-xs flex items-center gap-1 text-zinc-300"
-          title="Create New Blank Workflow"
-        >
-          <Plus className="h-3 w-3" />
-          <span>New</span>
-        </Button>
+        {onDeleteWorkflow && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onDeleteWorkflow}
+            disabled={!currentWorkflow || isRunning}
+            className="h-7 text-xs flex items-center gap-1 text-zinc-300 hover:text-rose-400 hover:border-rose-500/50"
+            title="Delete Current Workflow"
+          >
+            <Trash2 className="h-3 w-3" />
+            <span>Delete</span>
+          </Button>
+        )}
 
         <Button
           size="sm"
@@ -116,19 +119,6 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
           <Save className="h-3 w-3" />
           <span>Save</span>
         </Button>
-
-        {onDeleteWorkflow && (
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={onDeleteWorkflow}
-            disabled={!currentWorkflow || isRunning || workflows.length <= 1}
-            className="h-7 w-7 text-zinc-400 hover:text-rose-400 hover:bg-zinc-800"
-            title="Delete Current Workflow"
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        )}
       </div>
 
       {/* Right: Run, Abort, Reset */}
