@@ -91,6 +91,7 @@ export interface StoredMessage {
 export interface WorkflowNodeData {
   label: string;
   stepType:
+    | 'start_label'
     | 'publish'
     | 'subscribe'
     | 'unsubscribe'

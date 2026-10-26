@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Plus,
   FileCheck,
+  Flag,
 } from 'lucide-react';
 import type { WorkflowStepType } from '@/core/workflow/types';
 
@@ -30,6 +31,17 @@ interface PaletteItem {
 }
 
 const PALETTE_GROUPS: { groupName: string; items: PaletteItem[] }[] = [
+  {
+    groupName: 'Flow Triggers & Entry',
+    items: [
+      {
+        type: 'start_label',
+        label: 'Start Flow Label',
+        icon: <Flag className="h-3.5 w-3.5 text-fuchsia-400" />,
+        desc: 'Named flow start with random color & themed border',
+      },
+    ],
+  },
   {
     groupName: 'MQTT Messaging',
     items: [

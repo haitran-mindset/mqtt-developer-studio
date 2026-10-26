@@ -67,7 +67,11 @@ export const WorkflowDeletableEdge: React.FC<EdgeProps> = ({
         markerEnd={markerEnd}
         style={{
           ...style,
-          stroke: selected ? '#f43f5e' : isDisabled ? '#71717a' : (style?.stroke || '#06b6d4'),
+          stroke: selected
+            ? '#f43f5e'
+            : isDisabled
+            ? '#71717a'
+            : (data?.flowColor as string) || (style?.stroke as string) || '#06b6d4',
           strokeWidth: selected ? 2.5 : 2,
           strokeDasharray: isDisabled ? '6,6' : (style?.strokeDasharray || undefined),
           opacity: isDisabled ? 0.45 : 1,

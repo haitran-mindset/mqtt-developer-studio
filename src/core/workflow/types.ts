@@ -1,4 +1,5 @@
 export type WorkflowStepType =
+  | 'start_label'
   | 'publish'
   | 'subscribe'
   | 'unsubscribe'

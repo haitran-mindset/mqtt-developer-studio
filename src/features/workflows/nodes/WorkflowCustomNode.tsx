@@ -18,11 +18,15 @@ import {
   Copy,
   Trash2,
   FileCheck,
+  Flag,
+  RotateCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { WorkflowStepType } from '@/core/workflow/types';
+import { getRandomFlowColor } from '@/core/workflow/flowColors';
 
 const STEP_ICONS: Record<WorkflowStepType, React.ReactNode> = {
+  start_label: <Flag className="h-3.5 w-3.5 text-fuchsia-400" />,
   publish: <Send className="h-3.5 w-3.5 text-cyan-400" />,
   subscribe: <Inbox className="h-3.5 w-3.5 text-emerald-400" />,
   unsubscribe: <Inbox className="h-3.5 w-3.5 text-zinc-400" />,
@@ -104,6 +108,134 @@ export const WorkflowCustomNode = memo(({ id, data, selected }: NodeProps) => {
     toast.info(`Deleted "${nodeData.label || stepType || 'Node'}"`);
   };
 
+  const handleRandomizeColor = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newColor = getRandomFlowColor();
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.id === id
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                config: {
+                  ...(n.data.config || {}),
+                  color: newColor,
+                },
+              },
+            }
+          : n
+      )
+    );
+    toast.success('Randomized flow color');
+  };
+
+  const handleLabelChange = (newLabel: string) => {
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.id === id
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                label: newLabel,
+                config: {
+                  ...(n.data.config || {}),
+                  label: newLabel,
+                },
+              },
+            }
+          : n
+      )
+    );
+  };
+
+  // Specialized rendering for Start Flow Label node (Solid background, highlighted label, rotating icon)
+  if (stepType === 'start_label') {
+    const flowColor = (config.color as string) || '#06b6d4';
+    const flowName = String(config.label || label || 'Start Flow');
+
+    return (
+      <div
+        className={`w-64 rounded-xl border border-white/25 p-3 text-xs shadow-2xl transition-all font-sans relative select-none ${
+          selected ? 'ring-2 ring-white shadow-2xl' : ''
+        }`}
+        style={{
+          backgroundColor: flowColor,
+          backgroundImage: 'linear-gradient(145deg, rgba(255,255,255,0.22) 0%, rgba(0,0,0,0.22) 100%)',
+          boxShadow: `0 10px 25px -4px ${flowColor}70, 0 4px 12px -2px ${flowColor}40`,
+        }}
+      >
+        {/* Header: Flow Start Badge & Quick Action Buttons */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5">
+            <span className="bg-black/35 text-white px-2 py-0.5 rounded-full text-[10px] font-mono font-extrabold tracking-wider border border-white/20 flex items-center gap-1 shadow-sm">
+              <Flag className="h-3 w-3 fill-white text-white" />
+              <span>FLOW START</span>
+            </span>
+          </div>
+
+          {/* Actions: Rotate Color, Duplicate, Delete */}
+          <div className="flex items-center gap-1 bg-black/25 rounded-md p-0.5 border border-white/20 backdrop-blur-xs">
+            <button
+              type="button"
+              onClick={handleRandomizeColor}
+              title="Rotate / Randomize flow color"
+              className="p-1 rounded text-white/90 hover:text-white hover:bg-white/20 transition-all hover:rotate-180 duration-300"
+            >
+              <RotateCw className="h-3.5 w-3.5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDuplicate}
+              title="Duplicate flow trigger"
+              className="p-1 rounded text-white/90 hover:text-white hover:bg-white/20 transition-colors"
+            >
+              <Copy className="h-3 w-3" />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDelete}
+              title="Delete flow trigger"
+              className="p-1 rounded text-white/90 hover:text-rose-200 hover:bg-rose-500/30 transition-colors"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+
+        {/* Highly Prominent Label Input */}
+        <div className="relative">
+          <input
+            type="text"
+            value={flowName}
+            onChange={(e) => handleLabelChange(e.target.value)}
+            placeholder="Flow Label..."
+            className="w-full bg-black/35 hover:bg-black/45 focus:bg-black/55 border border-white/30 focus:border-white/90 rounded-lg px-3 py-2 text-sm font-extrabold text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-white/40 shadow-inner tracking-wide transition-all"
+            title="Click to edit Flow Label"
+          />
+        </div>
+
+        {/* Output Handle to connect downstream */}
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          className="!w-4 !h-4 !border-2 !border-zinc-950 cursor-crosshair hover:!scale-150 transition-transform !bottom-[-8px]"
+          style={{
+            backgroundColor: '#ffffff',
+            boxShadow: `0 0 14px ${flowColor}, 0 0 4px #ffffff`,
+          }}
+          title="Connect from here to start this flow branch"
+        />
+      </div>
+    );
+  }
+
+  // Downstream Flow Color (inherited from start_label node)
+  const flowColor = nodeData.flowColor as string | undefined;
+
   // Status styles
   let statusBorder = 'border-zinc-800';
   let statusBg = 'bg-zinc-900/90';
@@ -120,6 +252,13 @@ export const WorkflowCustomNode = memo(({ id, data, selected }: NodeProps) => {
     statusBorder = 'border-rose-500 shadow-sm shadow-rose-500/20';
   } else if (selected) {
     statusBorder = 'border-cyan-500/80';
+  }
+
+  // Custom border style for downstream nodes matching the start flow color
+  const customNodeStyle: React.CSSProperties = {};
+  if (flowColor && !isDisabled && status === 'idle' && !selected) {
+    customNodeStyle.borderColor = flowColor;
+    customNodeStyle.boxShadow = `0 0 14px ${flowColor}33`;
   }
 
   // Summary snippet
@@ -151,12 +290,17 @@ export const WorkflowCustomNode = memo(({ id, data, selected }: NodeProps) => {
   return (
     <div
       className={`w-64 rounded-xl border ${statusBorder} ${statusBg} p-3 text-xs shadow-xl transition-all font-sans relative backdrop-blur-md`}
+      style={customNodeStyle}
     >
       {/* Top Input Handle (Target / Incoming Connection) */}
       <Handle
         type="target"
         position={Position.Top}
-        className="!w-3.5 !h-3.5 !bg-cyan-400 !border-2 !border-zinc-950 shadow-[0_0_10px_rgba(34,211,238,0.9)] cursor-crosshair hover:!scale-150 transition-transform !top-[-7px]"
+        className="!w-3.5 !h-3.5 !border-2 !border-zinc-950 cursor-crosshair hover:!scale-150 transition-transform !top-[-7px]"
+        style={{
+          backgroundColor: flowColor || '#22d3ee',
+          boxShadow: `0 0 10px ${flowColor || 'rgba(34,211,238,0.9)'}`,
+        }}
         title="Input (Receive connection from previous step)"
       />
 
@@ -285,7 +429,11 @@ export const WorkflowCustomNode = memo(({ id, data, selected }: NodeProps) => {
           <Handle
             type="source"
             position={Position.Bottom}
-            className="!w-3.5 !h-3.5 !bg-cyan-400 !border-2 !border-zinc-950 shadow-[0_0_10px_rgba(34,211,238,0.9)] cursor-crosshair hover:!scale-150 transition-transform !bottom-[-7px]"
+            className="!w-3.5 !h-3.5 !border-2 !border-zinc-950 cursor-crosshair hover:!scale-150 transition-transform !bottom-[-7px]"
+            style={{
+              backgroundColor: flowColor || '#22d3ee',
+              boxShadow: `0 0 10px ${flowColor || 'rgba(34,211,238,0.9)'}`,
+            }}
             title="Drag from here to connect to the next step"
           />
         </div>

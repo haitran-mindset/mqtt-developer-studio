@@ -4,6 +4,8 @@ import { MQTTTopicMatcher } from '../mqtt/MQTTTopicMatcher';
 export class StepExecutors {
   static async execute(stepType: WorkflowStepType, ctx: StepExecutorContext): Promise<StepExecutionResult> {
     switch (stepType) {
+      case 'start_label':
+        return StepExecutors.executeStartLabel(ctx);
       case 'publish':
         return StepExecutors.executePublish(ctx);
       case 'subscribe':
@@ -527,5 +529,18 @@ export class StepExecutors {
     }
 
     return errors;
+  }
+
+  // 0. Start Flow Label (Entry point)
+  private static async executeStartLabel(ctx: StepExecutorContext): Promise<StepExecutionResult> {
+    const label = ctx.stepConfig.label || ctx.stepName || 'Start Flow';
+    return {
+      success: true,
+      output: {
+        flowLabel: label,
+        color: ctx.stepConfig.color,
+        startedAt: Date.now(),
+      },
+    };
   }
 }

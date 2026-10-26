@@ -13,7 +13,8 @@ import {
 } from '@/components/ui/select';
 import type { WorkflowStepType } from '@/core/workflow/types';
 import { useDataStore } from '@/core/store/dataStore';
-import { X, Sparkles, Trash2, Play, Copy } from 'lucide-react';
+import { X, Sparkles, Trash2, Play, Copy, RotateCw, Flag } from 'lucide-react';
+import { FLOW_START_PALETTE, getRandomFlowColor } from '@/core/workflow/flowColors';
 
 interface WorkflowNodeInspectorProps {
   selectedNode: any;
@@ -61,6 +62,10 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
     onUpdateNodeData(id, {
       ...data,
       label,
+      config: {
+        ...(config || {}),
+        label,
+      },
     });
   };
 
@@ -611,6 +616,71 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+        )}
+
+        {/* 14. Start Flow Label */}
+        {stepType === 'start_label' && (
+          <div className="space-y-3.5 pt-2 border-t border-zinc-800">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-[11px] font-medium text-zinc-300">Flow Accent Color</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleUpdateConfig('color', getRandomFlowColor())}
+                  className="h-6 px-1.5 text-[10px] text-cyan-400 hover:text-cyan-300 hover:bg-zinc-800 flex items-center gap-1"
+                  title="Rotate / Randomize color"
+                >
+                  <RotateCw className="h-3 w-3" />
+                  <span>Random</span>
+                </Button>
+              </div>
+
+              {/* Preset Color Swatches */}
+              <div className="grid grid-cols-6 gap-1.5 p-2 rounded-lg bg-zinc-900/80 border border-zinc-800">
+                {FLOW_START_PALETTE.map((p) => {
+                  const isSelected = (config.color || '#06b6d4').toLowerCase() === p.color.toLowerCase();
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => handleUpdateConfig('color', p.color)}
+                      className={`h-6 w-full rounded-md transition-all flex items-center justify-center relative ${
+                        isSelected ? 'ring-2 ring-white scale-110 shadow-lg' : 'hover:scale-105 opacity-80 hover:opacity-100'
+                      }`}
+                      style={{ backgroundColor: p.color }}
+                      title={`${p.name} (${p.color})`}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Custom Hex Color & Picker */}
+              <div className="flex items-center gap-2 mt-1.5">
+                <input
+                  type="color"
+                  value={config.color || '#06b6d4'}
+                  onChange={(e) => handleUpdateConfig('color', e.target.value)}
+                  className="w-8 h-8 rounded border border-zinc-700 bg-transparent cursor-pointer p-0.5"
+                  title="Pick custom color"
+                />
+                <Input
+                  value={config.color || '#06b6d4'}
+                  onChange={(e) => handleUpdateConfig('color', e.target.value)}
+                  placeholder="#06b6d4"
+                  className="h-8 font-mono text-xs uppercase"
+                />
+              </div>
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800 text-[11px] text-zinc-400 space-y-1">
+              <span className="font-semibold text-zinc-200 block">Downstream Border Theming</span>
+              <p className="leading-relaxed text-[10px] text-zinc-400">
+                All nodes connected downstream from this Start Flow node automatically inherit this color on their borders and connection wires.
+              </p>
             </div>
           </div>
         )}

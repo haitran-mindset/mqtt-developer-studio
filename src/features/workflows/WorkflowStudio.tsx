@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   ReactFlow,
   Controls,
@@ -34,6 +34,7 @@ import {
   exportWorkflowToJson,
   importWorkflowFromJson,
 } from '@/core/workflow/workflowImportExport';
+import { getRandomFlowColor, computeFlowColorMaps } from '@/core/workflow/flowColors';
 
 const nodeTypes = {
   workflowCustomNode: WorkflowCustomNode,
@@ -130,6 +131,9 @@ export const WorkflowStudio: React.FC = () => {
     }
 
     const newNodeId = `node-${Date.now()}`;
+    const initialConfig = getDefaultConfigForStep(stepType);
+    const nodeLabel = stepType === 'start_label' && initialConfig.label ? initialConfig.label : label;
+
     const newNode: Node = {
       id: newNodeId,
       type: 'workflowCustomNode',
@@ -138,20 +142,27 @@ export const WorkflowStudio: React.FC = () => {
         y: 150 + (nodes.length % 5) * 40,
       },
       data: {
-        label,
+        label: nodeLabel,
         stepType,
         status: 'idle',
-        config: getDefaultConfigForStep(stepType),
+        config: initialConfig,
       },
     };
 
     setNodes((nds) => [...nds, newNode]);
     setSelectedNodeId(newNodeId);
-    toast.success(`Added ${label}`);
+    toast.success(`Added ${nodeLabel}`);
   };
 
   const getDefaultConfigForStep = (type: WorkflowStepType): Record<string, any> => {
     switch (type) {
+      case 'start_label': {
+        const count = nodes.filter((n) => n.data?.stepType === 'start_label').length;
+        return {
+          label: count === 0 ? 'Main Flow' : `Sub Flow ${String.fromCharCode(65 + count - 1)}`,
+          color: getRandomFlowColor(),
+        };
+      }
       case 'publish':
         return { topic: 'devices/device-01/command', payload: '{"cmd": "ping"}', qos: 0 };
       case 'subscribe':
@@ -520,6 +531,43 @@ export const WorkflowStudio: React.FC = () => {
     }
   };
 
+  // Dynamically propagate start_label flow colors down to all connected descendant nodes and edges
+  const { nodeColorMap, edgeColorMap } = useMemo(() => {
+    return computeFlowColorMaps(nodes, edges);
+  }, [nodes, edges]);
+
+  const decoratedNodes = useMemo(() => {
+    return nodes.map((node) => {
+      const flowColor = nodeColorMap.get(node.id);
+      if (node.data?.flowColor !== flowColor) {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            flowColor,
+          },
+        };
+      }
+      return node;
+    });
+  }, [nodes, nodeColorMap]);
+
+  const decoratedEdges = useMemo(() => {
+    return edges.map((edge) => {
+      const flowColor = edgeColorMap.get(edge.id);
+      if (edge.data?.flowColor !== flowColor) {
+        return {
+          ...edge,
+          data: {
+            ...edge.data,
+            flowColor,
+          },
+        };
+      }
+      return edge;
+    });
+  }, [edges, edgeColorMap]);
+
   const selectedNode = nodes.find((n) => n.id === selectedNodeId);
 
   return (
@@ -589,8 +637,8 @@ export const WorkflowStudio: React.FC = () => {
           )}
 
           <ReactFlow
-            nodes={nodes}
-            edges={edges}
+            nodes={decoratedNodes}
+            edges={decoratedEdges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
