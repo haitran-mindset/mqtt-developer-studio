@@ -38,7 +38,10 @@ import { toast } from 'sonner';
 import {
   loadSubscribeDraftFromSession,
   saveSubscribeDraftToSession,
+  loadSubscribedTopicsFromSession,
+  saveSubscribedTopicsToSession,
   isSessionPersistEnabled,
+  type SavedSubscription,
 } from '@/core/storage/sessionStorageManager';
 
 interface SubscriberViewProps {
@@ -54,9 +57,15 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
   } = useStudioStore();
 
   const initialDraft = React.useMemo(() => loadSubscribeDraftFromSession(), []);
+  const initialSavedSubs = React.useMemo(() => loadSubscribedTopicsFromSession() || [], []);
 
-  const [subTopic, setSubTopic] = useState(initialDraft?.topic || '');
-  const [subQos, setSubQos] = useState<QoS>(initialDraft?.qos ?? 0);
+  const [subTopic, setSubTopic] = useState(
+    initialDraft?.topic || (initialSavedSubs.length > 0 ? initialSavedSubs[initialSavedSubs.length - 1].topic : '')
+  );
+  const [subQos, setSubQos] = useState<QoS>(
+    initialDraft?.qos ?? (initialSavedSubs.length > 0 ? initialSavedSubs[initialSavedSubs.length - 1].qos : 0)
+  );
+  const [savedSubs, setSavedSubs] = useState<SavedSubscription[]>(initialSavedSubs);
 
   // Auto-sync subscribe draft to session storage if enabled
   React.useEffect(() => {
@@ -78,6 +87,38 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
     ? connectionManager.getConnection(activeConnectionId)
     : null;
   const subscriptions = activeAdapter ? Array.from(activeAdapter.getSubscriptions().values()) : [];
+
+  const currentStatus = activeConnectionId
+    ? connectionStatuses[activeConnectionId]?.status || 'disconnected'
+    : 'disconnected';
+
+  // Auto re-subscribe saved topics when connected to a broker
+  React.useEffect(() => {
+    if (currentStatus === 'connected' && activeAdapter && isSessionPersistEnabled() && savedSubs.length > 0) {
+      const activeMap = activeAdapter.getSubscriptions();
+      savedSubs.forEach((sub) => {
+        if (!activeMap.has(sub.topic)) {
+          activeAdapter.subscribe(sub.topic, sub.qos).catch((err) => {
+            console.error('Auto re-subscribe error for', sub.topic, err);
+          });
+        }
+      });
+    }
+  }, [currentStatus, activeAdapter, savedSubs]);
+
+  // Combined subscriptions list (live adapter subscriptions + session-saved subscriptions)
+  const displayedSubscriptions = useMemo(() => {
+    const map = new Map<string, { topic: string; qos: QoS; messageCount: number; isLive: boolean }>();
+    subscriptions.forEach((s) => {
+      map.set(s.topic, { topic: s.topic, qos: s.qos, messageCount: s.messageCount, isLive: true });
+    });
+    savedSubs.forEach((s) => {
+      if (!map.has(s.topic)) {
+        map.set(s.topic, { topic: s.topic, qos: s.qos, messageCount: 0, isLive: currentStatus === 'connected' });
+      }
+    });
+    return Array.from(map.values());
+  }, [subscriptions, savedSubs, currentStatus]);
 
   // In-memory messages from useDataStore
   const allMessages = useDataStore((state) => state.messageHistory);
@@ -109,10 +150,6 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
     });
   }, [displayMessages, directionFilter, topicFilter, payloadFilter]);
 
-  const currentStatus = activeConnectionId
-    ? connectionStatuses[activeConnectionId]?.status || 'disconnected'
-    : 'disconnected';
-
   // Handle Subscribe
   const handleSubscribe = async () => {
     if (!activeConnectionId || currentStatus !== 'connected') {
@@ -127,7 +164,17 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
     try {
       await activeAdapter?.subscribe(subTopic, subQos);
       toast.success(`Subscribed to ${subTopic}`);
-      setSubTopic('');
+
+      // Add to saved subscriptions and persist if enabled
+      const exists = savedSubs.some((s) => s.topic === subTopic);
+      const nextSubs = exists
+        ? savedSubs.map((s) => (s.topic === subTopic ? { topic: subTopic, qos: subQos } : s))
+        : [...savedSubs, { topic: subTopic, qos: subQos }];
+      setSavedSubs(nextSubs);
+      if (isSessionPersistEnabled()) {
+        saveSubscribedTopicsToSession(nextSubs);
+        saveSubscribeDraftToSession({ topic: subTopic, qos: subQos });
+      }
     } catch (err: any) {
       toast.error(`Subscription failed: ${err.message}`);
     }
@@ -142,32 +189,52 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
       await activeAdapter?.unsubscribe(topic);
       toast.info(`Unsubscribed from ${topic}`);
     } catch (err: any) {
-      toast.error(`Unsubscribe failed: ${err.message}`);
+      // Still remove from saved if not currently connected
+    }
+    const nextSubs = savedSubs.filter((s) => s.topic !== topic);
+    setSavedSubs(nextSubs);
+    if (isSessionPersistEnabled()) {
+      saveSubscribedTopicsToSession(nextSubs);
     }
   };
 
   // Handle Unsubscribe All
   const handleUnsubscribeAll = async () => {
-    if (!activeAdapter || subscriptions.length === 0) return;
-    try {
-      for (const sub of subscriptions) {
-        await activeAdapter.unsubscribe(sub.topic);
+    if (activeAdapter && subscriptions.length > 0) {
+      try {
+        for (const sub of subscriptions) {
+          await activeAdapter.unsubscribe(sub.topic);
+        }
+        toast.info(`Unsubscribed from all active topics`);
+      } catch (err: any) {
+        toast.error(`Failed to unsubscribe all: ${err.message}`);
       }
-      toast.info(`Unsubscribed from all ${subscriptions.length} active topics`);
-    } catch (err: any) {
-      toast.error(`Failed to unsubscribe all: ${err.message}`);
+    }
+    setSavedSubs([]);
+    if (isSessionPersistEnabled()) {
+      saveSubscribedTopicsToSession([]);
     }
   };
 
   // Quick subscribe from shortcut buttons
   const handleQuickSubscribe = async (topic: string, qos: QoS = 0) => {
+    setSubTopic(topic);
+    setSubQos(qos);
+    if (isSessionPersistEnabled()) {
+      saveSubscribeDraftToSession({ topic, qos });
+    }
     if (!activeConnectionId || currentStatus !== 'connected') {
-      toast.error('Connect to broker first before subscribing.');
+      toast.info(`Set topic to "${topic}". Connect to broker to subscribe.`);
       return;
     }
     try {
       await activeAdapter?.subscribe(topic, qos);
       toast.success(`Subscribed to ${topic}`);
+      const nextSubs = [...savedSubs.filter((s) => s.topic !== topic), { topic, qos }];
+      setSavedSubs(nextSubs);
+      if (isSessionPersistEnabled()) {
+        saveSubscribedTopicsToSession(nextSubs);
+      }
     } catch (err: any) {
       toast.error(`Subscription failed: ${err.message}`);
     }
@@ -330,7 +397,7 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
                 </span>
               </div>
               <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-400 border border-zinc-800">
-                {subscriptions.length} {subscriptions.length === 1 ? 'subscription' : 'subscriptions'}
+                {displayedSubscriptions.length} {displayedSubscriptions.length === 1 ? 'subscription' : 'subscriptions'}
               </span>
               {topicFilter && (
                 <span className="text-[10px] text-cyan-400 flex items-center gap-1 bg-cyan-950/60 border border-cyan-800/40 px-2 py-0.5 rounded-full">
@@ -346,7 +413,7 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
               )}
             </div>
 
-            {subscriptions.length > 0 && (
+            {displayedSubscriptions.length > 0 && (
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -362,7 +429,7 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
           </div>
 
           {/* Active Subscription Cards */}
-          {subscriptions.length === 0 ? (
+          {displayedSubscriptions.length === 0 ? (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg bg-zinc-950/60 border border-dashed border-zinc-800/90 text-xs">
               <div className="flex items-center gap-2 text-zinc-400">
                 <Inbox className="w-4 h-4 text-zinc-500 shrink-0" />
@@ -399,7 +466,7 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
             </div>
           ) : (
             <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto py-0.5 pr-1">
-              {subscriptions.map((sub) => {
+              {displayedSubscriptions.map((sub) => {
                 const isFiltered = topicFilter && (sub.topic === topicFilter || sub.topic.includes(topicFilter));
                 return (
                   <div
@@ -411,7 +478,14 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
                     }`}
                   >
                     {/* Live dot */}
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.8)] shrink-0" />
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        sub.isLive
+                          ? 'bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.8)]'
+                          : 'bg-zinc-500'
+                      }`}
+                      title={sub.isLive ? 'Active MQTT Subscription' : 'Saved (Connect broker to receive)'}
+                    />
 
                     {/* Topic Name */}
                     <span

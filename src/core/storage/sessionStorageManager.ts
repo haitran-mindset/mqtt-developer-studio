@@ -8,7 +8,13 @@ export const SESSION_STORAGE_KEYS = {
   PUBLISH_PRESETS: 'mqtt_session_publish_presets',
   SUBSCRIBE_DRAFT: 'mqtt_session_subscribe_draft',
   SUBSCRIPTION_PRESETS: 'mqtt_session_subscription_presets',
+  SUBSCRIBED_TOPICS: 'mqtt_session_subscribed_topics',
 } as const;
+
+export interface SavedSubscription {
+  topic: string;
+  qos: QoS;
+}
 
 export interface PublishDraft {
   topic: string;
@@ -59,6 +65,7 @@ export function clearAllSessionStorage(): void {
   window.sessionStorage.removeItem(SESSION_STORAGE_KEYS.PUBLISH_PRESETS);
   window.sessionStorage.removeItem(SESSION_STORAGE_KEYS.SUBSCRIBE_DRAFT);
   window.sessionStorage.removeItem(SESSION_STORAGE_KEYS.SUBSCRIPTION_PRESETS);
+  window.sessionStorage.removeItem(SESSION_STORAGE_KEYS.SUBSCRIBED_TOPICS);
 }
 
 /**
@@ -220,3 +227,26 @@ export function loadSubscriptionPresetsFromSession(): SubscriptionPreset[] | nul
     return null;
   }
 }
+
+// --- Subscribed Topics List ---
+export function saveSubscribedTopicsToSession(topics: SavedSubscription[]): void {
+  if (!isBrowser || !isSessionPersistEnabled()) return;
+  try {
+    window.sessionStorage.setItem(SESSION_STORAGE_KEYS.SUBSCRIBED_TOPICS, JSON.stringify(topics));
+  } catch (e) {
+    console.error('Failed to save subscribed topics to sessionStorage:', e);
+  }
+}
+
+export function loadSubscribedTopicsFromSession(): SavedSubscription[] | null {
+  if (!isBrowser || !isSessionPersistEnabled()) return null;
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEYS.SUBSCRIBED_TOPICS);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error('Failed to parse subscribed topics from sessionStorage:', e);
+    return null;
+  }
+}
+
