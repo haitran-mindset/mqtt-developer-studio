@@ -13,6 +13,8 @@ import {
   Radio,
   ArrowDownLeft,
   ArrowUpRight,
+  Copy,
+  Sparkles,
 } from 'lucide-react';
 import { useStudioStore } from '@/app/store/studioStore';
 import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
@@ -20,6 +22,7 @@ import { useDataStore } from '@/core/store/dataStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Select,
   SelectContent,
@@ -116,6 +119,9 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
     }
   };
 
+  // Modal state
+  const [unsubscribeAllConfirmOpen, setUnsubscribeAllConfirmOpen] = useState(false);
+
   // Handle Unsubscribe
   const handleUnsubscribe = async (topic: string) => {
     try {
@@ -124,6 +130,86 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
     } catch (err: any) {
       toast.error(`Unsubscribe failed: ${err.message}`);
     }
+  };
+
+  // Handle Unsubscribe All
+  const handleUnsubscribeAll = async () => {
+    if (!activeAdapter || subscriptions.length === 0) return;
+    try {
+      for (const sub of subscriptions) {
+        await activeAdapter.unsubscribe(sub.topic);
+      }
+      toast.info(`Unsubscribed from all ${subscriptions.length} active topics`);
+    } catch (err: any) {
+      toast.error(`Failed to unsubscribe all: ${err.message}`);
+    }
+  };
+
+  // Quick subscribe from shortcut buttons
+  const handleQuickSubscribe = async (topic: string, qos: QoS = 0) => {
+    if (!activeConnectionId || currentStatus !== 'connected') {
+      toast.error('Connect to broker first before subscribing.');
+      return;
+    }
+    try {
+      await activeAdapter?.subscribe(topic, qos);
+      toast.success(`Subscribed to ${topic}`);
+    } catch (err: any) {
+      toast.error(`Subscription failed: ${err.message}`);
+    }
+  };
+
+  // Copy topic path
+  const handleCopyTopic = (topic: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(topic);
+    toast.success(`Copied topic "${topic}"`);
+  };
+
+  // Quick toggle filter stream by topic
+  const handleFilterBySubTopic = (topic: string) => {
+    if (topicFilter === topic) {
+      setTopicFilter('');
+      toast.info('Cleared topic filter');
+    } else {
+      const clean = topic.replace(/[#+]/g, '').replace(/\/+$/, '');
+      setTopicFilter(clean || topic);
+      toast.info(`Filtering stream by: ${clean || topic}`);
+    }
+  };
+
+  // Format topic with highlighted MQTT wildcards
+  const renderTopicParts = (topic: string) => {
+    const parts = topic.split(/([+#])/g);
+    return (
+      <>
+        {parts.map((p, i) => {
+          if (p === '#') {
+            return (
+              <span
+                key={i}
+                className="text-amber-400 font-bold bg-amber-500/15 px-1 py-0.2 rounded text-[11px]"
+                title="Multi-level wildcard (#)"
+              >
+                #
+              </span>
+            );
+          }
+          if (p === '+') {
+            return (
+              <span
+                key={i}
+                className="text-cyan-400 font-bold bg-cyan-500/15 px-1 py-0.2 rounded text-[11px]"
+                title="Single-level wildcard (+)"
+              >
+                +
+              </span>
+            );
+          }
+          return <span key={i}>{p}</span>;
+        })}
+      </>
+    );
   };
 
   // Clear Messages
@@ -150,20 +236,44 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-zinc-950">
       {/* Top Subscription Bar */}
-      <div className="p-3 border-b border-zinc-800 bg-zinc-900/40 space-y-2.5 select-none">
-        <div className="flex items-center gap-2">
+      <div className="border-b border-zinc-800 bg-zinc-900/40 select-none">
+        {/* Subscribe Input Row */}
+        <div className="p-3 pb-2.5 flex items-center gap-2">
           {/* Subscription topic input */}
-          <div className="flex-1 flex items-center bg-zinc-900 border border-zinc-750 rounded-md px-2.5 py-0.5 focus-within:ring-1 focus-within:ring-cyan-500 focus-within:border-cyan-500">
-            <span className="text-[11px] font-mono text-cyan-400 font-semibold mr-2 select-none">
+          <div className="flex-1 flex items-center bg-zinc-900/90 border border-zinc-800 rounded-md px-3 py-1 focus-within:ring-1 focus-within:ring-cyan-500 focus-within:border-cyan-500/80 transition-all">
+            <span className="text-[11px] font-mono text-cyan-400 font-bold tracking-wider mr-2 shrink-0 select-none flex items-center gap-1.5">
+              <Radio className="w-3.5 h-3.5 text-cyan-400" />
               SUB TOPIC:
             </span>
             <input
               type="text"
               value={subTopic}
               onChange={(e) => setSubTopic(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSubscribe();
+              }}
               placeholder="Enter topic filter to subscribe (e.g. sensors/# or devices/+/status)"
               className="w-full bg-transparent text-xs font-mono text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
             />
+            {/* Quick wildcard inserter buttons */}
+            <div className="flex items-center gap-1 pl-2 border-l border-zinc-800 shrink-0">
+              <button
+                type="button"
+                onClick={() => setSubTopic((prev) => (prev ? `${prev}/+` : '+'))}
+                className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-zinc-800/70 border border-zinc-700/50 text-cyan-400 hover:bg-cyan-950/60 hover:border-cyan-500/50 hover:text-cyan-300 transition-colors cursor-pointer"
+                title="Append single-level wildcard (+)"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                onClick={() => setSubTopic((prev) => (prev ? `${prev}/#` : '#'))}
+                className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-zinc-800/70 border border-zinc-700/50 text-amber-400 hover:bg-amber-950/60 hover:border-amber-500/50 hover:text-amber-300 transition-colors cursor-pointer"
+                title="Append multi-level wildcard (#)"
+              >
+                #
+              </button>
+            </div>
           </div>
 
           {/* QoS selector */}
@@ -185,44 +295,169 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
           <Button
             size="sm"
             onClick={handleSubscribe}
-            className="flex items-center gap-1.5 font-semibold text-xs h-8 px-4"
+            className="flex items-center gap-1.5 font-semibold text-xs h-8 px-4 shadow-md shadow-cyan-500/20"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Subscribe</span>
           </Button>
         </div>
 
-        {/* Active Subscription Pills */}
-        <div className="flex flex-wrap items-center gap-2 min-h-[26px]">
-          <span className="text-[10px] text-zinc-500 font-mono">Active Topics:</span>
-          {subscriptions.length === 0 ? (
-            <span className="text-[11px] text-zinc-500 italic">
-              No active subscriptions. Enter a topic above to start receiving messages.
-            </span>
-          ) : (
-            subscriptions.map((sub) => (
-              <Badge
-                key={sub.topic}
-                variant="outline"
-                className="flex items-center gap-1.5 bg-zinc-900 border-cyan-900/60 text-cyan-400 py-1 px-2 text-xs font-mono group"
-              >
-                <Radio className="h-2.5 w-2.5 animate-pulse text-cyan-400" />
-                <span className="font-semibold text-zinc-100">{sub.topic}</span>
-                <span className="text-[9px] bg-cyan-950 px-1 py-0.5 rounded text-cyan-300">
-                  QoS {sub.qos}
+        {/* Active Topics Header & Cards Section */}
+        <div className="px-3 pb-3 pt-1 border-t border-zinc-800/70">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
                 </span>
-                <span className="text-[9px] bg-zinc-800 px-1 py-0.5 rounded text-zinc-300">
-                  {sub.messageCount} msgs
+                <span className="text-[11px] font-semibold text-zinc-200 uppercase tracking-wider">
+                  Active Topics
                 </span>
+              </div>
+              <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-400 border border-zinc-800">
+                {subscriptions.length} {subscriptions.length === 1 ? 'subscription' : 'subscriptions'}
+              </span>
+              {topicFilter && (
+                <span className="text-[10px] text-cyan-400 flex items-center gap-1 bg-cyan-950/60 border border-cyan-800/40 px-2 py-0.5 rounded-full">
+                  <span>Filtered:</span>
+                  <strong className="font-mono">{topicFilter}</strong>
+                  <button
+                    onClick={() => setTopicFilter('')}
+                    className="hover:text-rose-400 ml-0.5 cursor-pointer"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+            </div>
+
+            {subscriptions.length > 0 && (
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => handleUnsubscribe(sub.topic)}
-                  className="hover:text-rose-400 ml-1 cursor-pointer transition-colors"
-                  title="Unsubscribe"
+                  type="button"
+                  onClick={() => setUnsubscribeAllConfirmOpen(true)}
+                  className="text-[11px] text-zinc-400 hover:text-rose-400 flex items-center gap-1 px-2 py-0.5 rounded hover:bg-rose-500/10 transition-colors cursor-pointer"
+                  title="Unsubscribe from all active topics"
                 >
-                  <X className="h-3 w-3" />
+                  <Trash2 className="w-3 h-3" />
+                  <span>Unsubscribe All</span>
                 </button>
-              </Badge>
-            ))
+              </div>
+            )}
+          </div>
+
+          {/* Active Subscription Cards */}
+          {subscriptions.length === 0 ? (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg bg-zinc-950/60 border border-dashed border-zinc-800/90 text-xs">
+              <div className="flex items-center gap-2 text-zinc-400">
+                <Inbox className="w-4 h-4 text-zinc-500 shrink-0" />
+                <span className="text-[11px] text-zinc-400">
+                  No active subscriptions. Enter a topic above or pick a quick start filter:
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                <button
+                  onClick={() => handleQuickSubscribe('#')}
+                  className="px-2 py-1 rounded bg-zinc-900 hover:bg-cyan-950/60 hover:text-cyan-300 hover:border-cyan-700/60 border border-zinc-800 text-[10px] font-mono text-zinc-300 transition-all cursor-pointer flex items-center gap-1"
+                  title="Subscribe to all topics (#)"
+                >
+                  <Plus className="w-2.5 h-2.5 text-cyan-400" />
+                  <span># (All Topics)</span>
+                </button>
+                <button
+                  onClick={() => handleQuickSubscribe('sensors/#')}
+                  className="px-2 py-1 rounded bg-zinc-900 hover:bg-cyan-950/60 hover:text-cyan-300 hover:border-cyan-700/60 border border-zinc-800 text-[10px] font-mono text-zinc-300 transition-all cursor-pointer flex items-center gap-1"
+                  title="Subscribe to sensors/#"
+                >
+                  <Plus className="w-2.5 h-2.5 text-cyan-400" />
+                  <span>sensors/#</span>
+                </button>
+                <button
+                  onClick={() => handleQuickSubscribe('devices/+/status')}
+                  className="px-2 py-1 rounded bg-zinc-900 hover:bg-cyan-950/60 hover:text-cyan-300 hover:border-cyan-700/60 border border-zinc-800 text-[10px] font-mono text-zinc-300 transition-all cursor-pointer flex items-center gap-1"
+                  title="Subscribe to devices/+/status"
+                >
+                  <Plus className="w-2.5 h-2.5 text-cyan-400" />
+                  <span>devices/+/status</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto py-0.5 pr-1">
+              {subscriptions.map((sub) => {
+                const isFiltered = topicFilter && (sub.topic === topicFilter || sub.topic.includes(topicFilter));
+                return (
+                  <div
+                    key={sub.topic}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs font-mono transition-all group select-none shadow-sm ${
+                      isFiltered
+                        ? 'bg-cyan-950/40 border-cyan-500/60 shadow-cyan-950/30 ring-1 ring-cyan-500/40 text-cyan-300'
+                        : 'bg-zinc-900/90 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900'
+                    }`}
+                  >
+                    {/* Live dot */}
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.8)] shrink-0" />
+
+                    {/* Topic Name */}
+                    <span
+                      onClick={() => handleFilterBySubTopic(sub.topic)}
+                      className="font-semibold text-zinc-100 cursor-pointer hover:text-cyan-300 transition-colors tracking-tight flex items-center gap-0.5"
+                      title="Click to toggle stream filter for this topic"
+                    >
+                      {renderTopicParts(sub.topic)}
+                    </span>
+
+                    {/* QoS Badge */}
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-400 shrink-0 font-medium">
+                      QoS {sub.qos}
+                    </span>
+
+                    {/* Message Count Badge */}
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 shrink-0 font-semibold">
+                      {sub.messageCount} {sub.messageCount === 1 ? 'msg' : 'msgs'}
+                    </span>
+
+                    {/* Card Actions */}
+                    <div className="flex items-center gap-0.5 border-l border-zinc-800 pl-1 ml-0.5">
+                      {/* Copy topic button */}
+                      <button
+                        type="button"
+                        onClick={(e) => handleCopyTopic(sub.topic, e)}
+                        className="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
+                        title="Copy topic"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </button>
+
+                      {/* Filter stream toggle */}
+                      <button
+                        type="button"
+                        onClick={() => handleFilterBySubTopic(sub.topic)}
+                        className={`p-1 rounded transition-colors cursor-pointer ${
+                          isFiltered
+                            ? 'text-cyan-400 bg-cyan-950/80 font-bold'
+                            : 'text-zinc-400 hover:text-cyan-300 hover:bg-zinc-800'
+                        }`}
+                        title={isFiltered ? 'Clear topic filter' : 'Filter stream to this topic'}
+                      >
+                        <Filter className="h-3 w-3" />
+                      </button>
+
+                      {/* Unsubscribe button */}
+                      <button
+                        type="button"
+                        onClick={() => handleUnsubscribe(sub.topic)}
+                        className="p-1 rounded text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                        title="Unsubscribe"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>
@@ -333,7 +568,7 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
               <span>No messages matching current filters.</span>
             </div>
           ) : (
-            <div className="divide-y divide-zinc-850 font-mono text-xs">
+            <div className="divide-y divide-zinc-800/60 font-mono text-xs">
               {filteredMessages.map((msg) => {
                 const isSelected = selectedMessage?.id === msg.id;
 
@@ -405,6 +640,16 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
           </div>
         )}
       </div>
+      {/* Unsubscribe All Confirmation */}
+      <ConfirmDialog
+        open={unsubscribeAllConfirmOpen}
+        onOpenChange={setUnsubscribeAllConfirmOpen}
+        title="Unsubscribe from All Topics"
+        description={`Are you sure you want to unsubscribe from all ${subscriptions.length} active topics? You will stop receiving messages on these filters.`}
+        confirmText="Unsubscribe All"
+        variant="destructive"
+        onConfirm={handleUnsubscribeAll}
+      />
     </div>
   );
 };

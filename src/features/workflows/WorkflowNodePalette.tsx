@@ -84,7 +84,7 @@ export const WorkflowNodePalette: React.FC<WorkflowNodePaletteProps> = ({ onAddN
               <div
                 key={item.type}
                 onClick={() => onAddNode(item.type, item.label)}
-                className="flex items-center justify-between p-2 rounded-lg border border-zinc-850 bg-zinc-900/40 hover:bg-zinc-900 hover:border-cyan-500/50 cursor-pointer transition-all group"
+                className="flex items-center justify-between p-2 rounded-lg border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900 hover:border-cyan-500/50 cursor-pointer transition-all group"
               >
                 <div className="flex items-center gap-2">
                   <div className="p-1 rounded bg-zinc-800">{item.icon}</div>

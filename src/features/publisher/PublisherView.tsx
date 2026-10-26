@@ -267,7 +267,7 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
       <div className="p-3 border-b border-zinc-800 bg-zinc-900/40 space-y-3">
         <div className="flex items-center gap-2">
           {/* Topic input */}
-          <div className="flex-1 flex items-center bg-zinc-900 border border-zinc-750 rounded-md px-2.5 py-0.5 focus-within:ring-1 focus-within:ring-cyan-500 focus-within:border-cyan-500">
+          <div className="flex-1 flex items-center bg-zinc-900 border border-zinc-800 rounded-md px-2.5 py-0.5 focus-within:ring-1 focus-within:ring-cyan-500 focus-within:border-cyan-500">
             <span className="text-[11px] font-mono text-cyan-400 font-semibold mr-2 select-none">
               TOPIC:
             </span>
@@ -296,7 +296,7 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
           </div>
 
           {/* Retain Switch */}
-          <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-750 rounded-md px-2.5 h-8 text-xs shrink-0">
+          <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-md px-2.5 h-8 text-xs shrink-0">
             <Switch id="pub-retain" checked={retain} onCheckedChange={setRetain} />
             <Label htmlFor="pub-retain" className="text-zinc-300 select-none text-[11px] cursor-pointer">
               Retain

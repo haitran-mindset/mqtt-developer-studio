@@ -90,11 +90,11 @@ export const PromptDialog: React.FC<PromptDialogProps> = ({
               value={value}
               onChange={(e) => setValue(e.target.value)}
               placeholder={placeholder}
-              className="text-xs font-sans h-9 bg-zinc-900 border-zinc-750 focus:border-cyan-500"
+              className="text-xs font-sans h-9 bg-zinc-900 border-zinc-800 focus:border-cyan-500"
             />
           </div>
 
-          <DialogFooter className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-850">
+          <DialogFooter className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
             <Button
               type="button"
               variant="outline"

@@ -74,7 +74,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           </div>
         </DialogHeader>
 
-        <DialogFooter className="flex items-center justify-end gap-2 pt-4 border-t border-zinc-850 mt-2">
+        <DialogFooter className="flex items-center justify-end gap-2 pt-4 border-t border-zinc-800 mt-2">
           <Button
             type="button"
             variant="outline"

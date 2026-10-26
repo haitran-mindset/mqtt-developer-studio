@@ -108,7 +108,7 @@ export const WorkflowCustomNode = memo(({ data, selected }: NodeProps) => {
       </div>
 
       {/* Node Body / Summary */}
-      <div className="font-mono text-[11px] text-zinc-400 bg-zinc-950/60 border border-zinc-850 rounded px-2 py-1 truncate">
+      <div className="font-mono text-[11px] text-zinc-400 bg-zinc-950/60 border border-zinc-800 rounded px-2 py-1 truncate">
         {summary || stepType}
       </div>
 
@@ -120,7 +120,7 @@ export const WorkflowCustomNode = memo(({ data, selected }: NodeProps) => {
 
       {/* Output Handles (Source / Connect to next step) */}
       {stepType === 'condition' ? (
-        <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-zinc-850 text-[10px] font-mono px-1">
+        <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-zinc-800 text-[10px] font-mono px-1">
           <div className="relative flex items-center gap-1">
             <span className="text-emerald-400 font-bold">TRUE</span>
             <Handle
@@ -143,7 +143,7 @@ export const WorkflowCustomNode = memo(({ data, selected }: NodeProps) => {
           </div>
         </div>
       ) : stepType === 'loop' ? (
-        <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-zinc-850 text-[10px] font-mono px-1">
+        <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-zinc-800 text-[10px] font-mono px-1">
           <div className="relative flex items-center gap-1">
             <span className="text-indigo-400 font-bold">BODY</span>
             <Handle

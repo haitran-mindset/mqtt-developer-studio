@@ -237,7 +237,7 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
                 </CardContent>
 
                 {/* Bottom Card Actions */}
-                <CardFooter className="p-3 border-t border-zinc-850 flex items-center justify-between bg-zinc-950/40">
+                <CardFooter className="p-3 border-t border-zinc-800 flex items-center justify-between bg-zinc-950/40">
                   <Button
                     size="sm"
                     variant={status === 'connected' ? 'destructive' : 'default'}

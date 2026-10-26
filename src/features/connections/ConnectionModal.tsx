@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -26,7 +26,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Dices } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import type {
   ConnectionProfile,
   Protocol,
@@ -203,10 +203,14 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
     }
   };
 
+  const [isRandomizing, setIsRandomizing] = useState(false);
+
   const handleRandomClientId = () => {
+    setIsRandomizing(true);
     const randId = `mqtt_studio_${Math.random().toString(16).substring(2, 10)}`;
     setValue("clientId", randId, { shouldValidate: true });
     toast.success("Generated random Client ID");
+    setTimeout(() => setIsRandomizing(false), 500);
   };
 
   return (
@@ -252,10 +256,14 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                 <button
                   type="button"
                   onClick={handleRandomClientId}
-                  className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer font-mono"
+                  className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer font-mono group"
                   title="Generate random Client ID"
                 >
-                  <Dices className="h-3 w-3" />
+                  <RefreshCw
+                    className={`h-3 w-3 transition-transform duration-500 ${
+                      isRandomizing ? "animate-spin text-cyan-300" : "group-hover:rotate-45"
+                    }`}
+                  />
                   <span>Random</span>
                 </button>
               </div>
@@ -271,9 +279,13 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                       <button
                         type="button"
                         onClick={handleRandomClientId}
-                        className="absolute right-1.5 p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-cyan-400 transition-colors cursor-pointer"
+                        className="absolute right-1.5 p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-cyan-400 transition-colors cursor-pointer group"
                       >
-                        <Dices className="h-3.5 w-3.5" />
+                        <RefreshCw
+                          className={`h-3.5 w-3.5 transition-transform duration-500 ${
+                            isRandomizing ? "animate-spin text-cyan-400" : "group-hover:rotate-45"
+                          }`}
+                        />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent>Generate random Client ID</TooltipContent>
@@ -385,7 +397,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
           </div>
 
           {/* Section: Authentication */}
-          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-850">
+          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-800">
             <div className="space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">
                 Username (Optional)
@@ -409,7 +421,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
           </div>
 
           {/* Section: Protocol Details */}
-          <div className="grid grid-cols-4 gap-3 pt-2 border-t border-zinc-850">
+          <div className="grid grid-cols-4 gap-3 pt-2 border-t border-zinc-800">
             <div className="space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">
                 MQTT Version
@@ -453,7 +465,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
           </div>
 
           {/* Clean session switch */}
-          <div className="flex items-center justify-between py-1 border-t border-zinc-850">
+          <div className="flex items-center justify-between py-1 border-t border-zinc-800">
             <div>
               <span className="text-xs font-medium text-zinc-200">
                 {mqttVersion === "5.0" ? "Clean Start" : "Clean Session"}
@@ -469,7 +481,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
           </div>
 
           {/* Section: Last Will and Testament (LWT) */}
-          <div className="pt-2 border-t border-zinc-850 space-y-2">
+          <div className="pt-2 border-t border-zinc-800 space-y-2">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-xs font-medium text-zinc-200">
@@ -543,7 +555,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
           </div>
 
           {/* Dialog Footer Actions */}
-          <div className="flex items-center justify-end gap-2 pt-4 border-t border-zinc-850">
+          <div className="flex items-center justify-end gap-2 pt-4 border-t border-zinc-800">
             <Button
               type="button"
               variant="outline"

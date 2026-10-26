@@ -186,7 +186,7 @@ export const StudioHeader: React.FC = () => {
             className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${
               activeTab === item.tab
                 ? 'bg-zinc-800 text-cyan-400 shadow-sm border border-zinc-700/60 font-semibold'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
             }`}
           >
             {item.icon}

@@ -66,7 +66,7 @@ export const JsonTreeNode: React.FC<JsonTreeNodeProps> = ({
         </div>
 
         {!collapsed && !isEmpty && (
-          <div className="pl-4 border-l border-zinc-850 ml-2">
+          <div className="pl-4 border-l border-zinc-800 ml-2">
             {keys.map((k, idx) => (
               <JsonTreeNode
                 key={k}

@@ -44,7 +44,7 @@ export const VariableHelperModal: React.FC<VariableHelperModalProps> = ({
                 toast.success(`Inserted ${v.token}`);
                 onOpenChange(false);
               }}
-              className="p-2.5 rounded-lg border border-zinc-850 bg-zinc-900/60 hover:bg-zinc-900 hover:border-cyan-500/50 cursor-pointer transition-all flex items-center justify-between group"
+              className="p-2.5 rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 hover:border-cyan-500/50 cursor-pointer transition-all flex items-center justify-between group"
             >
               <div>
                 <div className="flex items-center gap-2">

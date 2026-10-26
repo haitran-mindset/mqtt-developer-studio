@@ -102,7 +102,7 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
 
         {/* 1. Publish Step */}
         {stepType === 'publish' && (
-          <div className="space-y-3 pt-2 border-t border-zinc-850">
+          <div className="space-y-3 pt-2 border-t border-zinc-800">
             <div className="space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">Target Topic</Label>
               <Input
@@ -155,7 +155,7 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
 
         {/* 2. Subscribe Step */}
         {stepType === 'subscribe' && (
-          <div className="space-y-3 pt-2 border-t border-zinc-850">
+          <div className="space-y-3 pt-2 border-t border-zinc-800">
             <div className="space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">Subscription Topic</Label>
               <Input
@@ -186,7 +186,7 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
 
         {/* 3. Delay Step */}
         {stepType === 'delay' && (
-          <div className="space-y-3 pt-2 border-t border-zinc-850">
+          <div className="space-y-3 pt-2 border-t border-zinc-800">
             <div className="space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">Duration (ms)</Label>
               <Input
@@ -201,7 +201,7 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
 
         {/* 4. Wait for Message Step */}
         {stepType === 'wait_for_message' && (
-          <div className="space-y-3 pt-2 border-t border-zinc-850">
+          <div className="space-y-3 pt-2 border-t border-zinc-800">
             <div className="space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">Listen Topic</Label>
               <Input
@@ -247,7 +247,7 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
 
         {/* 5. Validate Payload */}
         {stepType === 'validate_payload' && (
-          <div className="space-y-3 pt-2 border-t border-zinc-850">
+          <div className="space-y-3 pt-2 border-t border-zinc-800">
             <div className="space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">Assertion Field</Label>
               <Input
@@ -291,7 +291,7 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
 
         {/* 6. Set Variable */}
         {stepType === 'set_variable' && (
-          <div className="space-y-3 pt-2 border-t border-zinc-850">
+          <div className="space-y-3 pt-2 border-t border-zinc-800">
             <div className="space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">Variable Name</Label>
               <Input
@@ -314,7 +314,7 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
 
         {/* 7. Extract Variable */}
         {stepType === 'extract_variable' && (
-          <div className="space-y-3 pt-2 border-t border-zinc-850">
+          <div className="space-y-3 pt-2 border-t border-zinc-800">
             <div className="space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">JSONPath Field</Label>
               <Input
@@ -337,7 +337,7 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
 
         {/* 8. Condition (IF/ELSE) */}
         {stepType === 'condition' && (
-          <div className="space-y-3 pt-2 border-t border-zinc-850">
+          <div className="space-y-3 pt-2 border-t border-zinc-800">
             <div className="space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">
                 Boolean Expression (JavaScript)
@@ -356,7 +356,7 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
 
         {/* 9. Loop */}
         {stepType === 'loop' && (
-          <div className="space-y-3 pt-2 border-t border-zinc-850">
+          <div className="space-y-3 pt-2 border-t border-zinc-800">
             <div className="space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">Iterations (Count)</Label>
               <Input
@@ -371,7 +371,7 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
 
         {/* 10. Log Message */}
         {stepType === 'log' && (
-          <div className="space-y-3 pt-2 border-t border-zinc-850">
+          <div className="space-y-3 pt-2 border-t border-zinc-800">
             <div className="space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">Log Message</Label>
               <Input
