@@ -9,10 +9,13 @@ import {
   Activity,
   Power,
   ChevronDown,
+  Save,
+  ShieldCheck,
 } from 'lucide-react';
 import { useStudioStore, type StudioTab } from '../store/studioStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import {
   Select,
@@ -21,9 +24,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useDataStore } from '@/core/store/dataStore';
 import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
 import { toast } from 'sonner';
+import {
+  isSessionPersistEnabled,
+  setSessionPersistEnabled,
+  enableSessionPersistWithSync,
+} from '@/core/storage/sessionStorageManager';
 
 export const StudioHeader: React.FC = () => {
   const {
@@ -35,6 +49,30 @@ export const StudioHeader: React.FC = () => {
     bottomPanelOpen,
     toggleBottomPanel,
   } = useStudioStore();
+
+  const [sessionPersist, setSessionPersist] = React.useState(() => isSessionPersistEnabled());
+
+  const handleToggleSessionPersist = (checked: boolean) => {
+    setSessionPersist(checked);
+    if (checked) {
+      const dataState = useDataStore.getState();
+      const studioState = useStudioStore.getState();
+      enableSessionPersistWithSync({
+        workflows: dataState.workflows,
+        publishPresets: dataState.publishPresets,
+        subscriptionPresets: dataState.subscriptionPresets,
+        activeWorkflowId: studioState.activeWorkflowId,
+      });
+      toast.success('Session persistence enabled', {
+        description: 'Workflows & Topics saved across page reload. Broker credentials are NEVER stored.',
+      });
+    } else {
+      setSessionPersistEnabled(false);
+      toast.info('Session persistence disabled', {
+        description: 'SessionStorage cache cleared.',
+      });
+    }
+  };
 
   const profiles = useDataStore((state) => state.connectionProfiles);
   const activeProfile = profiles.find((p) => p.id === activeConnectionId) || profiles[0];
@@ -196,7 +234,39 @@ export const StudioHeader: React.FC = () => {
       </nav>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
+        {/* Session Storage Persist Switch */}
+        <TooltipProvider delayDuration={150}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-2 px-2.5 h-7 rounded-md bg-zinc-900 border border-zinc-800 text-xs shadow-sm hover:border-zinc-700 transition-colors">
+                <Save className={`h-3.5 w-3.5 transition-colors ${sessionPersist ? 'text-cyan-400' : 'text-zinc-500'}`} />
+                <span className="text-[11px] font-medium text-zinc-300 select-none whitespace-nowrap">
+                  Save Session
+                </span>
+                <Switch
+                  id="session-persist-switch"
+                  checked={sessionPersist}
+                  onCheckedChange={handleToggleSessionPersist}
+                  className="scale-90"
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" align="end" className="max-w-[280px] p-2.5 space-y-1.5 bg-zinc-950 border-zinc-800 shadow-xl">
+              <div className="flex items-center gap-1.5 font-semibold text-cyan-400 text-xs">
+                <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                <span>Session Storage: {sessionPersist ? 'Enabled' : 'Disabled'}</span>
+              </div>
+              <p className="text-[11px] text-zinc-300 leading-relaxed">
+                Giữ lại Workflows, Subscribe Topic, Publish Topic & Presets qua các lần tải lại trang (F5/Reload).
+              </p>
+              <div className="text-[10px] text-emerald-400 font-semibold pt-1 border-t border-zinc-800/80 flex items-center gap-1">
+                <span>🛡️ Tuyệt đối KHÔNG lưu trữ thông tin Broker</span>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
         <Button
           size="sm"
           variant={bottomPanelOpen ? 'secondary' : 'outline'}

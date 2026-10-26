@@ -49,6 +49,11 @@ import type { QoS, PayloadFormat, PublishPreset } from '@/core/db/types';
 import { VariableHelperModal } from './VariableHelperModal';
 import { PromptDialog } from '@/components/ui/prompt-dialog';
 import { toast } from 'sonner';
+import {
+  loadPublishDraftFromSession,
+  savePublishDraftToSession,
+  isSessionPersistEnabled,
+} from '@/core/storage/sessionStorageManager';
 
 interface PublisherViewProps {
   initialPreset?: PublishPreset | null;
@@ -58,11 +63,20 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
   const { activeConnectionId, connectionStatuses } = useStudioStore();
   const publishPresets = useDataStore((state) => state.publishPresets);
 
-  const [topic, setTopic] = useState('');
-  const [qos, setQos] = useState<QoS>(0);
-  const [retain, setRetain] = useState(false);
-  const [format, setFormat] = useState<PayloadFormat>('json');
-  const [payload, setPayload] = useState('');
+  const initialDraft = React.useMemo(() => loadPublishDraftFromSession(), []);
+
+  const [topic, setTopic] = useState(initialDraft?.topic || '');
+  const [qos, setQos] = useState<QoS>(initialDraft?.qos ?? 0);
+  const [retain, setRetain] = useState(initialDraft?.retain ?? false);
+  const [format, setFormat] = useState<PayloadFormat>((initialDraft?.format as PayloadFormat) || 'json');
+  const [payload, setPayload] = useState(initialDraft?.payload || '');
+
+  // Auto-sync draft to session storage if enabled
+  useEffect(() => {
+    if (isSessionPersistEnabled()) {
+      savePublishDraftToSession({ topic, payload, qos, retain, format });
+    }
+  }, [topic, payload, qos, retain, format]);
 
   // Repeat & Interval
   const [isPublishingRepeat, setIsPublishingRepeat] = useState(false);

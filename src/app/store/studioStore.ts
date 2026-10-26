@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import type { ConnectionStatus, ConnectionEventLog } from '@/core/mqtt/types';
 import type { WorkflowStepRunLog } from '@/core/db/types';
+import {
+  loadActiveWorkflowIdFromSession,
+  saveActiveWorkflowIdToSession,
+} from '@/core/storage/sessionStorageManager';
 
 export type StudioTab = 'connections' | 'publisher' | 'subscriber' | 'workflows';
 export type BottomPanelTab = 'connection_logs' | 'workflow_console' | 'diagnostics';
@@ -41,7 +45,7 @@ interface StudioState {
 export const useStudioStore = create<StudioState>((set) => ({
   activeTab: 'connections',
   activeConnectionId: null,
-  activeWorkflowId: null,
+  activeWorkflowId: loadActiveWorkflowIdFromSession(),
 
   bottomPanelOpen: true,
   bottomPanelTab: 'connection_logs',
@@ -57,7 +61,10 @@ export const useStudioStore = create<StudioState>((set) => ({
 
   setActiveTab: (tab) => set({ activeTab: tab }),
   setActiveConnectionId: (id) => set({ activeConnectionId: id }),
-  setActiveWorkflowId: (id) => set({ activeWorkflowId: id }),
+  setActiveWorkflowId: (id) => {
+    saveActiveWorkflowIdToSession(id);
+    set({ activeWorkflowId: id });
+  },
   setBottomPanelOpen: (open) => set({ bottomPanelOpen: open }),
   toggleBottomPanel: () => set((state) => ({ bottomPanelOpen: !state.bottomPanelOpen })),
   setBottomPanelTab: (tab) => set({ bottomPanelTab: tab, bottomPanelOpen: true }),

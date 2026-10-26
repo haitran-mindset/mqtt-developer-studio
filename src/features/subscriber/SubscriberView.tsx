@@ -35,6 +35,11 @@ import { format } from 'date-fns';
 import { formatBytes } from '@/lib/utils';
 import { MessageDetailInspector } from './MessageDetailInspector';
 import { toast } from 'sonner';
+import {
+  loadSubscribeDraftFromSession,
+  saveSubscribeDraftToSession,
+  isSessionPersistEnabled,
+} from '@/core/storage/sessionStorageManager';
 
 interface SubscriberViewProps {
   onRepublishMessage?: (message: StoredMessage) => void;
@@ -48,8 +53,17 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
     setIsPausedMessageStream,
   } = useStudioStore();
 
-  const [subTopic, setSubTopic] = useState('');
-  const [subQos, setSubQos] = useState<QoS>(0);
+  const initialDraft = React.useMemo(() => loadSubscribeDraftFromSession(), []);
+
+  const [subTopic, setSubTopic] = useState(initialDraft?.topic || '');
+  const [subQos, setSubQos] = useState<QoS>(initialDraft?.qos ?? 0);
+
+  // Auto-sync subscribe draft to session storage if enabled
+  React.useEffect(() => {
+    if (isSessionPersistEnabled()) {
+      saveSubscribeDraftToSession({ topic: subTopic, qos: subQos });
+    }
+  }, [subTopic, subQos]);
 
   // Search & Filtering
   const [topicFilter, setTopicFilter] = useState('');
