@@ -246,17 +246,16 @@ export const WorkflowCustomNode = memo(({ id, data, selected }: NodeProps) => {
   } else if (status === 'running') {
     statusBorder = 'border-cyan-400 shadow-lg shadow-cyan-500/30 ring-1 ring-cyan-400';
     statusBg = 'bg-cyan-950/40';
-  } else if (status === 'success') {
-    statusBorder = 'border-emerald-500 shadow-sm shadow-emerald-500/20';
   } else if (status === 'failed') {
     statusBorder = 'border-rose-500 shadow-sm shadow-rose-500/20';
+    statusBg = 'bg-rose-950/30';
   } else if (selected) {
     statusBorder = 'border-cyan-500/80';
   }
 
   // Custom border style for downstream nodes matching the start flow color
   const customNodeStyle: React.CSSProperties = {};
-  if (flowColor && !isDisabled && status === 'idle' && !selected) {
+  if (flowColor && !isDisabled && !selected) {
     customNodeStyle.borderColor = flowColor;
     customNodeStyle.boxShadow = `0 0 14px ${flowColor}33`;
   }
@@ -304,35 +303,22 @@ export const WorkflowCustomNode = memo(({ id, data, selected }: NodeProps) => {
         title="Input (Receive connection from previous step)"
       />
 
-      {/* Node Header */}
+      {/* Row 1: Node Header (Icon, Label, Actions) */}
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <div className="p-1 rounded bg-zinc-800 border border-zinc-700/60">
-            {STEP_ICONS[stepType] || <Send className="h-3.5 w-3.5" />}
+        <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
+          <div className="p-1 rounded bg-zinc-800 border border-zinc-700/60 shrink-0">
+            {STEP_ICONS[stepType] || <Send className="h-3.5 w-3.5 text-zinc-300" />}
           </div>
-          <span className={`font-semibold text-zinc-100 truncate text-[12px] max-w-[85px] ${isDisabled ? 'line-through text-zinc-400' : ''}`}>
+          <span
+            className={`font-semibold truncate text-[12px] text-zinc-100 ${isDisabled ? 'line-through text-zinc-400' : ''}`}
+            title={label}
+          >
             {label}
           </span>
         </div>
 
-        {/* Status Badge & Actions (Duplicate, Delete, Power) */}
-        <div className="flex items-center gap-1">
-          <span
-            className={`text-[9px] font-mono px-1.5 py-0.2 rounded uppercase ${
-              isDisabled
-                ? 'bg-zinc-800 text-zinc-500 border border-zinc-700'
-                : status === 'running'
-                ? 'bg-cyan-950 text-cyan-400 border border-cyan-800 animate-pulse'
-                : status === 'success'
-                ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                : status === 'failed'
-                ? 'bg-rose-950 text-rose-400 border border-rose-800'
-                : 'bg-zinc-800 text-zinc-400'
-            }`}
-          >
-            {isDisabled ? 'DISABLED' : status}
-          </span>
-
+        {/* Quick Actions (Duplicate, Delete, Power) */}
+        <div className="flex items-center gap-0.5 shrink-0">
           <button
             type="button"
             onClick={handleDuplicate}
@@ -366,7 +352,32 @@ export const WorkflowCustomNode = memo(({ id, data, selected }: NodeProps) => {
         </div>
       </div>
 
-      {/* Node Body / Summary */}
+      {/* Row 2: Status Badge & Step Type Indicator (Xuống hàng riêng giúp UI gọn gàng) */}
+      <div className="flex items-center justify-between gap-1.5 mb-2">
+        <span
+          className={`text-[9px] font-mono font-semibold px-2 py-0.5 rounded uppercase flex items-center gap-1 border ${
+            isDisabled
+              ? 'bg-zinc-800/80 text-zinc-500 border-zinc-700'
+              : status === 'running'
+              ? 'bg-cyan-950/90 text-cyan-400 border-cyan-700 animate-pulse'
+              : status === 'success'
+              ? 'bg-emerald-950/90 text-emerald-400 border-emerald-600/70 shadow-sm shadow-emerald-950/50'
+              : status === 'failed'
+              ? 'bg-rose-950/90 text-rose-400 border-rose-700'
+              : 'bg-zinc-800/60 text-zinc-400 border-zinc-700/60'
+          }`}
+        >
+          {status === 'success' && <CheckCircle2 className="h-2.5 w-2.5 stroke-[2.5] text-emerald-400" />}
+          {status === 'running' && <RefreshCw className="h-2.5 w-2.5 animate-spin text-cyan-400" />}
+          {isDisabled ? 'DISABLED' : status}
+        </span>
+
+        <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider truncate">
+          {stepType}
+        </span>
+      </div>
+
+      {/* Row 3: Node Body / Summary */}
       <div className="font-mono text-[11px] text-zinc-400 bg-zinc-950/60 border border-zinc-800 rounded px-2 py-1 truncate">
         {summary || stepType}
       </div>

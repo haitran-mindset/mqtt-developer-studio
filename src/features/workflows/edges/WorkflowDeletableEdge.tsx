@@ -60,6 +60,14 @@ export const WorkflowDeletableEdge: React.FC<EdgeProps> = ({
     toast.info('Connection removed');
   };
 
+  const isExecuted = Boolean(data?.isExecuted);
+  const flowColor = (data?.flowColor as string) || (style?.stroke as string) || '#06b6d4';
+  const strokeColor = selected
+    ? '#f43f5e'
+    : isDisabled
+    ? '#71717a'
+    : flowColor;
+
   return (
     <>
       <BaseEdge
@@ -67,14 +75,11 @@ export const WorkflowDeletableEdge: React.FC<EdgeProps> = ({
         markerEnd={markerEnd}
         style={{
           ...style,
-          stroke: selected
-            ? '#f43f5e'
-            : isDisabled
-            ? '#71717a'
-            : (data?.flowColor as string) || (style?.stroke as string) || '#06b6d4',
-          strokeWidth: selected ? 2.5 : 2,
+          stroke: strokeColor,
+          strokeWidth: selected ? 2.5 : isExecuted ? 3 : 2,
           strokeDasharray: isDisabled ? '6,6' : (style?.strokeDasharray || undefined),
           opacity: isDisabled ? 0.45 : 1,
+          filter: isExecuted ? `drop-shadow(0 0 8px ${flowColor}cc)` : undefined,
         }}
         interactionWidth={30}
       />
@@ -84,8 +89,14 @@ export const WorkflowDeletableEdge: React.FC<EdgeProps> = ({
             position: 'absolute',
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
             pointerEvents: 'all',
+            borderColor: isExecuted ? `${flowColor}88` : undefined,
+            boxShadow: isExecuted ? `0 0 12px ${flowColor}40` : undefined,
           }}
-          className="nodrag nopan group z-20 flex items-center gap-1 bg-zinc-950/90 border border-zinc-800 rounded-full px-1 py-0.5 shadow-lg backdrop-blur-sm"
+          className={`nodrag nopan group z-20 flex items-center gap-1 rounded-full px-1 py-0.5 shadow-lg backdrop-blur-sm border ${
+            isExecuted
+              ? 'bg-zinc-950/95 ring-1'
+              : 'bg-zinc-950/90 border-zinc-800'
+          }`}
         >
           <button
             type="button"

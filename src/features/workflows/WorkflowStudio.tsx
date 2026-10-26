@@ -553,20 +553,28 @@ export const WorkflowStudio: React.FC = () => {
   }, [nodes, nodeColorMap]);
 
   const decoratedEdges = useMemo(() => {
+    const nodeStatusMap = new Map<string, string>();
+    nodes.forEach((n) => {
+      const data = n.data as { status?: string } | undefined;
+      nodeStatusMap.set(n.id, data?.status || 'idle');
+    });
+
     return edges.map((edge) => {
       const flowColor = edgeColorMap.get(edge.id);
-      if (edge.data?.flowColor !== flowColor) {
-        return {
-          ...edge,
-          data: {
-            ...edge.data,
-            flowColor,
-          },
-        };
-      }
-      return edge;
+      const sourceStatus = nodeStatusMap.get(edge.source);
+      const targetStatus = nodeStatusMap.get(edge.target);
+      const isExecuted = sourceStatus === 'success' && (targetStatus === 'success' || targetStatus === 'running');
+
+      return {
+        ...edge,
+        data: {
+          ...edge.data,
+          flowColor,
+          isExecuted,
+        },
+      };
     });
-  }, [edges, edgeColorMap]);
+  }, [edges, edgeColorMap, nodes]);
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId);
 
