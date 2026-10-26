@@ -258,10 +258,10 @@ export const StudioHeader: React.FC = () => {
                 <span>Session Storage: {sessionPersist ? 'Enabled' : 'Disabled'}</span>
               </div>
               <p className="text-[11px] text-zinc-300 leading-relaxed">
-                Giữ lại Workflows, Subscribe Topic, Publish Topic & Presets qua các lần tải lại trang (F5/Reload).
+                Persists workflows, subscribe topics, publish topics & presets across page reloads (F5).
               </p>
               <div className="text-[10px] text-emerald-400 font-semibold pt-1 border-t border-zinc-800/80 flex items-center gap-1">
-                <span>🛡️ Tuyệt đối KHÔNG lưu trữ thông tin Broker</span>
+                <span>🛡️ Broker credentials & profiles are NEVER stored.</span>
               </div>
             </TooltipContent>
           </Tooltip>
