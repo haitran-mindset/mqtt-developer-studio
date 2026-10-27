@@ -13,6 +13,8 @@ import {
   AlertCircle,
   Clock,
   Sparkles,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { useStudioStore } from '../store/studioStore';
 import { useDataStore } from '@/core/store/dataStore';
@@ -44,6 +46,9 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
     connectionStatuses,
     activeWorkflowId,
     setActiveWorkflowId,
+    sidebarOpen,
+    toggleSidebar,
+    setSidebarOpen,
   } = useStudioStore();
 
   const profiles = useDataStore((state) => state.connectionProfiles);
@@ -141,8 +146,147 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
     toast.success(`Workflow duplicated: "${newName}"`);
   };
 
+  // Render Collapsed Slim Rail (w-12)
+  if (!sidebarOpen) {
+    return (
+      <aside className="w-12 border-r border-zinc-800 bg-zinc-950 flex flex-col shrink-0 select-none items-center py-2 justify-between transition-all duration-200">
+        <div className="flex flex-col items-center gap-3 w-full">
+          {/* Expand Toggle Button */}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={toggleSidebar}
+            className="h-8 w-8 p-0 text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800/80 rounded-lg transition-colors"
+            title="Expand sidebar"
+          >
+            <PanelLeftOpen className="h-4 w-4" />
+          </Button>
+
+          <div className="w-6 h-[1px] bg-zinc-800/80" />
+
+          {/* Section Icon with count badge */}
+          {activeTab === 'connections' && (
+            <button
+              onClick={toggleSidebar}
+              className="p-2 rounded-lg text-cyan-400 hover:bg-zinc-800/80 transition-colors relative"
+              title={`Brokers (${profiles.length}) - Click to expand`}
+            >
+              <Server className="h-4 w-4" />
+              {profiles.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-cyan-950 border border-cyan-800 text-cyan-300 text-[9px] font-mono rounded-full px-1">
+                  {profiles.length}
+                </span>
+              )}
+            </button>
+          )}
+
+          {activeTab === 'workflows' && (
+            <button
+              onClick={toggleSidebar}
+              className="p-2 rounded-lg text-cyan-400 hover:bg-zinc-800/80 transition-colors relative"
+              title={`Workflows (${workflows.length}) - Click to expand`}
+            >
+              <GitBranch className="h-4 w-4" />
+              {workflows.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-cyan-950 border border-cyan-800 text-cyan-300 text-[9px] font-mono rounded-full px-1">
+                  {workflows.length}
+                </span>
+              )}
+            </button>
+          )}
+
+          {activeTab === 'publisher' && (
+            <button
+              onClick={toggleSidebar}
+              className="p-2 rounded-lg text-cyan-400 hover:bg-zinc-800/80 transition-colors relative"
+              title={`Presets (${publishPresets.length}) - Click to expand`}
+            >
+              <FileCode className="h-4 w-4" />
+            </button>
+          )}
+
+          {activeTab === 'subscriber' && (
+            <button
+              onClick={toggleSidebar}
+              className="p-2 rounded-lg text-cyan-400 hover:bg-zinc-800/80 transition-colors relative"
+              title="Subscriptions - Click to expand"
+            >
+              <Radio className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* Quick Add Button */}
+          {activeTab === 'connections' && (
+            <button
+              onClick={onOpenNewBrokerModal}
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800/80 transition-colors"
+              title="Add Broker Profile"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {activeTab === 'workflows' && (
+            <button
+              onClick={() => {
+                setNewWorkflowDialogOpen(true);
+                setSidebarOpen(true);
+              }}
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800/80 transition-colors"
+              title="Create New Workflow"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Dialogs still accessible */}
+        <ConfirmDialog
+          open={!!deleteProfileId}
+          onOpenChange={(open) => !open && setDeleteProfileId(null)}
+          title="Delete Broker Profile"
+          description="Are you sure you want to delete this broker profile? Any active connection will be closed immediately."
+          confirmText="Delete"
+          variant="destructive"
+          onConfirm={handleConfirmDeleteProfile}
+        />
+        <ConfirmDialog
+          open={!!deleteWorkflowTarget}
+          onOpenChange={(open) => !open && setDeleteWorkflowTarget(null)}
+          title="Delete Workflow"
+          description={`Are you sure you want to delete workflow "${deleteWorkflowTarget?.name}"? All steps and connections within it will be removed.`}
+          confirmText="Delete Workflow"
+          variant="destructive"
+          onConfirm={handleConfirmDeleteWorkflow}
+        />
+        <PromptDialog
+          open={!!renameWorkflowTarget}
+          onOpenChange={(open) => !open && setRenameWorkflowTarget(null)}
+          title="Rename Workflow"
+          description="Update the name of this automation workflow."
+          label="Workflow Name"
+          defaultValue={renameWorkflowTarget?.name || ''}
+          placeholder="e.g. Device Provisioning & Command Flow"
+          confirmText="Save Name"
+          onConfirm={handleConfirmRenameWorkflow}
+        />
+        <PromptDialog
+          open={newWorkflowDialogOpen}
+          onOpenChange={setNewWorkflowDialogOpen}
+          title="Create New Workflow"
+          description="Enter a descriptive name for your visual automation flow."
+          label="Workflow Name"
+          defaultValue="New Automation Workflow"
+          placeholder="e.g. Device Provisioning & Command Flow"
+          confirmText="Create Workflow"
+          onConfirm={handleConfirmNewWorkflow}
+        />
+      </aside>
+    );
+  }
+
   return (
-    <aside className="w-64 border-r border-zinc-800 bg-zinc-950 flex flex-col shrink-0 select-none">
+    <aside className="w-64 border-r border-zinc-800 bg-zinc-950 flex flex-col shrink-0 select-none transition-all duration-200">
       {/* Sidebar Header */}
       <div className="h-10 border-b border-zinc-800 px-3 flex items-center justify-between bg-zinc-900/40">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300">
@@ -172,31 +316,44 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
           )}
         </div>
 
-        {activeTab === 'connections' && (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onOpenNewBrokerModal}
-            className="h-6 px-1.5 text-cyan-400 hover:text-cyan-300 hover:bg-zinc-800"
-            title="Add Broker Profile"
-          >
-            <Plus className="h-3.5 w-3.5 mr-0.5" />
-            <span className="text-[11px]">Add</span>
-          </Button>
-        )}
+        <div className="flex items-center gap-1">
+          {activeTab === 'connections' && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onOpenNewBrokerModal}
+              className="h-6 px-1.5 text-cyan-400 hover:text-cyan-300 hover:bg-zinc-800"
+              title="Add Broker Profile"
+            >
+              <Plus className="h-3.5 w-3.5 mr-0.5" />
+              <span className="text-[11px]">Add</span>
+            </Button>
+          )}
 
-        {activeTab === 'workflows' && (
+          {activeTab === 'workflows' && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setNewWorkflowDialogOpen(true)}
+              className="h-6 px-1.5 text-cyan-400 hover:text-cyan-300 hover:bg-zinc-800"
+              title="Create New Workflow"
+            >
+              <Plus className="h-3.5 w-3.5 mr-0.5" />
+              <span className="text-[11px]">New</span>
+            </Button>
+          )}
+
+          {/* Collapse Sidebar Button */}
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => setNewWorkflowDialogOpen(true)}
-            className="h-6 px-1.5 text-cyan-400 hover:text-cyan-300 hover:bg-zinc-800"
-            title="Create New Workflow"
+            onClick={toggleSidebar}
+            className="h-6 w-6 p-0 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 ml-0.5"
+            title="Collapse sidebar"
           >
-            <Plus className="h-3.5 w-3.5 mr-0.5" />
-            <span className="text-[11px]">New</span>
+            <PanelLeftClose className="h-3.5 w-3.5" />
           </Button>
-        )}
+        </div>
       </div>
 
       {/* Sidebar List */}
@@ -340,14 +497,14 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-zinc-100">{wf.name}</span>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="font-semibold text-zinc-100 truncate pr-1 flex-1">{wf.name}</span>
+                    <div className="flex items-center gap-0.5 shrink-0">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setRenameWorkflowTarget(wf);
                         }}
-                        className="p-0.5 text-zinc-400 hover:text-cyan-400"
+                        className="p-1 rounded text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800 transition-colors"
                         title="Rename Workflow"
                       >
                         <Pencil className="h-3 w-3" />
@@ -357,7 +514,7 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
                           e.stopPropagation();
                           handleDuplicateWorkflow(wf);
                         }}
-                        className="p-0.5 text-zinc-400 hover:text-cyan-400"
+                        className="p-1 rounded text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800 transition-colors"
                         title="Duplicate Workflow"
                       >
                         <Copy className="h-3 w-3" />

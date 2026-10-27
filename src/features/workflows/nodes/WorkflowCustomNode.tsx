@@ -352,7 +352,7 @@ export const WorkflowCustomNode = memo(({ id, data, selected }: NodeProps) => {
         </div>
       </div>
 
-      {/* Row 2: Status Badge & Step Type Indicator (Xuống hàng riêng giúp UI gọn gàng) */}
+      {/* Row 2: Status Badge & Step Type Indicator (dedicated row for clean layout) */}
       <div className="flex items-center justify-between gap-1.5 mb-2">
         <span
           className={`text-[9px] font-mono font-semibold px-2 py-0.5 rounded uppercase flex items-center gap-1 border ${

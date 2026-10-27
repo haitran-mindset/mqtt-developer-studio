@@ -16,11 +16,17 @@ import {
   Plus,
   FileCheck,
   Flag,
+  ChevronLeft,
+  ChevronRight,
+  Layers,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import type { WorkflowStepType } from '@/core/workflow/types';
 
 interface WorkflowNodePaletteProps {
   onAddNode: (stepType: WorkflowStepType, label: string) => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 interface PaletteItem {
@@ -79,12 +85,67 @@ const PALETTE_GROUPS: { groupName: string; items: PaletteItem[] }[] = [
   },
 ];
 
-export const WorkflowNodePalette: React.FC<WorkflowNodePaletteProps> = ({ onAddNode }) => {
+export const WorkflowNodePalette: React.FC<WorkflowNodePaletteProps> = ({
+  onAddNode,
+  isCollapsed = false,
+  onToggleCollapse,
+}) => {
+  if (isCollapsed) {
+    return (
+      <div className="w-12 border-r border-zinc-800 bg-zinc-950 flex flex-col h-full overflow-y-auto py-2.5 items-center select-none shrink-0 transition-all duration-200">
+        {/* Expand Button */}
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onToggleCollapse}
+          className="h-8 w-8 p-0 text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800 rounded-lg mb-2"
+          title="Expand Step Palette"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+
+        <div className="w-6 h-[1px] bg-zinc-800 mb-2" />
+
+        {/* Step Icons List for 1-Click Quick Add */}
+        <div className="flex flex-col items-center gap-1.5 w-full px-1">
+          {PALETTE_GROUPS.flatMap((g) => g.items).map((item) => (
+            <button
+              key={item.type}
+              type="button"
+              onClick={() => onAddNode(item.type, item.label)}
+              className="w-8 h-8 rounded-lg flex items-center justify-center bg-zinc-900/60 border border-zinc-800/90 hover:border-cyan-500/60 hover:bg-zinc-800 text-zinc-300 hover:text-cyan-300 transition-all relative group"
+              title={`${item.label} (${item.desc}) - Click to add`}
+            >
+              {item.icon}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-64 border-r border-zinc-800 bg-zinc-950 flex flex-col h-full overflow-y-auto p-3 space-y-4 select-none">
-      <div>
-        <h3 className="text-xs font-semibold text-zinc-100">Step Palette</h3>
-        <p className="text-[11px] text-zinc-500">Click to add node to workflow canvas</p>
+    <div className="w-64 border-r border-zinc-800 bg-zinc-950 flex flex-col h-full overflow-y-auto p-3 space-y-4 select-none shrink-0 transition-all duration-200">
+      <div className="flex items-center justify-between pb-1 border-b border-zinc-800/60">
+        <div>
+          <h3 className="text-xs font-semibold text-zinc-100 flex items-center gap-1.5">
+            <Layers className="h-3.5 w-3.5 text-cyan-400" />
+            Step Palette
+          </h3>
+          <p className="text-[11px] text-zinc-500">Click to add node to canvas</p>
+        </div>
+
+        {onToggleCollapse && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onToggleCollapse}
+            className="h-6 w-6 p-0 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+            title="Collapse Step Palette"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {PALETTE_GROUPS.map((grp) => (

@@ -76,6 +76,24 @@ export const WorkflowStudio: React.FC = () => {
   const [statusText, setStatusText] = useState<string>('');
   const currentEngineRef = useRef<WorkflowEngine | null>(null);
 
+  const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('mqtt_workflow_palette_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleTogglePalette = () => {
+    setIsPaletteCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('mqtt_workflow_palette_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
   // Load workflow nodes & edges into canvas when currentWorkflow changes
   useEffect(() => {
     if (currentWorkflow) {
@@ -603,7 +621,11 @@ export const WorkflowStudio: React.FC = () => {
       {/* Main Studio: Palette on Left, Canvas in Middle, Inspector on Right */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Node Palette */}
-        <WorkflowNodePalette onAddNode={handleAddNode} />
+        <WorkflowNodePalette
+          onAddNode={handleAddNode}
+          isCollapsed={isPaletteCollapsed}
+          onToggleCollapse={handleTogglePalette}
+        />
 
         {/* Center: React Flow Canvas */}
         <div className="flex-1 h-full relative">
