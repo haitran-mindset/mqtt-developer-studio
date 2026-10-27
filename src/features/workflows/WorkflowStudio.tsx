@@ -35,6 +35,7 @@ import {
   importWorkflowFromJson,
 } from '@/core/workflow/workflowImportExport';
 import { getRandomFlowColor, computeFlowColorMaps } from '@/core/workflow/flowColors';
+import { useWorkflowHistory } from './useWorkflowHistory';
 
 const nodeTypes = {
   workflowCustomNode: WorkflowCustomNode,
@@ -76,6 +77,17 @@ export const WorkflowStudio: React.FC = () => {
   const [statusText, setStatusText] = useState<string>('');
   const currentEngineRef = useRef<WorkflowEngine | null>(null);
 
+  // History management for Undo / Redo
+  const { takeSnapshot, undo, redo, canUndo, canRedo, resetHistory } = useWorkflowHistory();
+  const nodesRef = useRef(nodes);
+  const edgesRef = useRef(edges);
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+  useEffect(() => {
+    edgesRef.current = edges;
+  }, [edges]);
+
   const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(() => {
     try {
       return localStorage.getItem('mqtt_workflow_palette_collapsed') === 'true';
@@ -105,21 +117,35 @@ export const WorkflowStudio: React.FC = () => {
       setEdges([]);
       setSelectedNodeId(null);
     }
-  }, [currentWorkflow?.id]);
+    resetHistory();
+  }, [currentWorkflow?.id, resetHistory]);
 
-  // Node & Edge changes
+  // Node & Edge changes (capture removals to history)
   const onNodesChange: OnNodesChange = useCallback(
-    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    []
+    (changes) => {
+      const hasRemoval = changes.some((c) => c.type === 'remove');
+      if (hasRemoval) {
+        takeSnapshot(nodesRef.current, edgesRef.current);
+      }
+      setNodes((nds) => applyNodeChanges(changes, nds));
+    },
+    [takeSnapshot]
   );
 
   const onEdgesChange: OnEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    []
+    (changes) => {
+      const hasRemoval = changes.some((c) => c.type === 'remove');
+      if (hasRemoval) {
+        takeSnapshot(nodesRef.current, edgesRef.current);
+      }
+      setEdges((eds) => applyEdgeChanges(changes, eds));
+    },
+    [takeSnapshot]
   );
 
   const onConnect: OnConnect = useCallback(
-    (connection) =>
+    (connection) => {
+      takeSnapshot(nodesRef.current, edgesRef.current);
       setEdges((eds) =>
         addEdge(
           {
@@ -131,9 +157,50 @@ export const WorkflowStudio: React.FC = () => {
           },
           eds
         )
-      ),
-    []
+      );
+    },
+    [takeSnapshot]
   );
+
+  // Drag tracking for Undo/Redo on node position moves
+  const dragStartSnapshotRef = useRef<{ nodes: Node[]; edges: Edge[] } | null>(null);
+
+  const onNodeDragStart = useCallback(() => {
+    dragStartSnapshotRef.current = {
+      nodes: nodesRef.current,
+      edges: edgesRef.current,
+    };
+  }, []);
+
+  const onNodeDragStop = useCallback(
+    (_: any, node: Node) => {
+      if (dragStartSnapshotRef.current) {
+        const origNode = dragStartSnapshotRef.current.nodes.find((n) => n.id === node.id);
+        if (
+          origNode &&
+          (origNode.position.x !== node.position.x || origNode.position.y !== node.position.y)
+        ) {
+          takeSnapshot(dragStartSnapshotRef.current.nodes, dragStartSnapshotRef.current.edges);
+        }
+        dragStartSnapshotRef.current = null;
+      }
+    },
+    [takeSnapshot]
+  );
+
+  const onSelectionDragStart = useCallback(() => {
+    dragStartSnapshotRef.current = {
+      nodes: nodesRef.current,
+      edges: edgesRef.current,
+    };
+  }, []);
+
+  const onSelectionDragStop = useCallback(() => {
+    if (dragStartSnapshotRef.current) {
+      takeSnapshot(dragStartSnapshotRef.current.nodes, dragStartSnapshotRef.current.edges);
+      dragStartSnapshotRef.current = null;
+    }
+  }, [takeSnapshot]);
 
   // Node click -> select for Inspector
   const onNodeClick = (_: React.MouseEvent, node: Node) => {
@@ -167,6 +234,7 @@ export const WorkflowStudio: React.FC = () => {
       },
     };
 
+    takeSnapshot(nodesRef.current, edgesRef.current);
     setNodes((nds) => [...nds, newNode]);
     setSelectedNodeId(newNodeId);
     toast.success(`Added ${nodeLabel}`);
@@ -227,8 +295,25 @@ export const WorkflowStudio: React.FC = () => {
     }
   };
 
-  // Update node data from Inspector
+  // Update node data from Inspector (debounced leading-edge snapshot for typing bursts)
+  const isTypingRef = useRef(false);
+  const typingTimerRef = useRef<any>(null);
+
+  const recordConfigChangeSnapshot = useCallback(() => {
+    if (!isTypingRef.current) {
+      takeSnapshot(nodesRef.current, edgesRef.current);
+      isTypingRef.current = true;
+    }
+    if (typingTimerRef.current) {
+      clearTimeout(typingTimerRef.current);
+    }
+    typingTimerRef.current = setTimeout(() => {
+      isTypingRef.current = false;
+    }, 700);
+  }, [takeSnapshot]);
+
   const handleUpdateNodeData = (nodeId: string, newData: any) => {
+    recordConfigChangeSnapshot();
     setNodes((nds) =>
       nds.map((n) => (n.id === nodeId ? { ...n, data: newData } : n))
     );
@@ -236,6 +321,7 @@ export const WorkflowStudio: React.FC = () => {
 
   // Delete node
   const handleDeleteNode = (nodeId: string) => {
+    takeSnapshot(nodesRef.current, edgesRef.current);
     setNodes((nds) => nds.filter((n) => n.id !== nodeId));
     setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
     if (selectedNodeId === nodeId) setSelectedNodeId(null);
@@ -245,6 +331,8 @@ export const WorkflowStudio: React.FC = () => {
   const handleDuplicateNode = (nodeId: string) => {
     const nodeToDup = nodes.find((n) => n.id === nodeId);
     if (!nodeToDup) return;
+
+    takeSnapshot(nodesRef.current, edgesRef.current);
 
     const newId = `node-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
     const originalLabel = String(nodeToDup.data?.label || nodeToDup.data?.stepType || 'Step');
@@ -274,7 +362,39 @@ export const WorkflowStudio: React.FC = () => {
     toast.success(`Duplicated "${originalLabel}"`);
   };
 
-  // Shortcut Ctrl+D / Cmd+D to duplicate selected node
+  // Undo action
+  const handleUndo = useCallback(() => {
+    const previous = undo(nodesRef.current, edgesRef.current);
+    if (previous) {
+      setNodes(previous.nodes);
+      setEdges(previous.edges);
+      setSelectedNodeId((cur) => {
+        if (cur && !previous.nodes.some((n) => n.id === cur)) {
+          return null;
+        }
+        return cur;
+      });
+      toast.info('Undo: reverted previous action');
+    }
+  }, [undo]);
+
+  // Redo action
+  const handleRedo = useCallback(() => {
+    const next = redo(nodesRef.current, edgesRef.current);
+    if (next) {
+      setNodes(next.nodes);
+      setEdges(next.edges);
+      setSelectedNodeId((cur) => {
+        if (cur && !next.nodes.some((n) => n.id === cur)) {
+          return null;
+        }
+        return cur;
+      });
+      toast.info('Redo: reapplied action');
+    }
+  }, [redo]);
+
+  // Global Keyboard Shortcuts: Ctrl+Z / Cmd+Z (Undo), Ctrl+Y / Cmd+Shift+Z (Redo), Ctrl+D / Cmd+D (Duplicate)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -286,17 +406,36 @@ export const WorkflowStudio: React.FC = () => {
         return;
       }
 
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
-        if (selectedNodeId) {
+      const isMac = typeof window !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+      const isMod = isMac ? e.metaKey : e.ctrlKey;
+
+      if (isMod && !e.altKey) {
+        // Redo: Cmd+Shift+Z or Ctrl+Shift+Z or Ctrl+Y
+        if ((e.shiftKey && e.key.toLowerCase() === 'z') || (!isMac && e.key.toLowerCase() === 'y')) {
           e.preventDefault();
-          handleDuplicateNode(selectedNodeId);
+          handleRedo();
+          return;
+        }
+        // Undo: Cmd+Z or Ctrl+Z (without shift)
+        if (!e.shiftKey && e.key.toLowerCase() === 'z') {
+          e.preventDefault();
+          handleUndo();
+          return;
+        }
+        // Duplicate: Cmd+D or Ctrl+D
+        if (e.key.toLowerCase() === 'd') {
+          if (selectedNodeId) {
+            e.preventDefault();
+            handleDuplicateNode(selectedNodeId);
+            return;
+          }
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodeId, nodes]);
+  }, [selectedNodeId, handleDuplicateNode, handleUndo, handleRedo]);
 
   // Save current workflow graph
   const handleSaveWorkflow = () => {
@@ -605,6 +744,10 @@ export const WorkflowStudio: React.FC = () => {
         onAbort={handleAbort}
         onReset={handleResetStatuses}
         onSave={handleSaveWorkflow}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        canUndo={canUndo}
+        canRedo={canRedo}
         onNewWorkflow={handleNewWorkflow}
         onRenameWorkflow={handleRenameWorkflow}
         onDuplicateWorkflow={handleDuplicateWorkflow}
@@ -643,6 +786,10 @@ export const WorkflowStudio: React.FC = () => {
               <span>
                 <strong className="text-rose-400">Remove wire:</strong> Click <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-zinc-800 border border-rose-500/50 text-rose-400 font-bold text-[10px] mx-0.5">✕</span> on the wire, or select it and press <kbd className="bg-zinc-800 border border-zinc-700 px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-300">Delete</kbd>
               </span>
+              <span className="text-zinc-600">•</span>
+              <span>
+                <strong className="text-amber-400">Undo:</strong> <kbd className="bg-zinc-800 border border-zinc-700 px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-300">Ctrl+Z</kbd>
+              </span>
             </div>
           )}
 
@@ -673,6 +820,10 @@ export const WorkflowStudio: React.FC = () => {
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onNodeClick={onNodeClick}
+            onNodeDragStart={onNodeDragStart}
+            onNodeDragStop={onNodeDragStop}
+            onSelectionDragStart={onSelectionDragStart}
+            onSelectionDragStop={onSelectionDragStop}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             deleteKeyCode={['Backspace', 'Delete']}

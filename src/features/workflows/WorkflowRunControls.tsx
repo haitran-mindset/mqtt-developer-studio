@@ -12,6 +12,8 @@ import {
   Copy,
   Download,
   Upload,
+  Undo2,
+  Redo2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +33,10 @@ interface WorkflowRunControlsProps {
   onAbort: () => void;
   onReset: () => void;
   onSave: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
   onNewWorkflow?: () => void;
   onRenameWorkflow?: () => void;
   onDuplicateWorkflow?: () => void;
@@ -50,6 +56,10 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
   onAbort,
   onReset,
   onSave,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
   onNewWorkflow,
   onRenameWorkflow,
   onDuplicateWorkflow,
@@ -136,6 +146,36 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
             >
               <Copy className="h-3 w-3" />
               <span>Duplicate</span>
+            </Button>
+          )}
+
+          <Separator orientation="vertical" className="h-4 bg-zinc-800 mx-0.5" />
+
+          {onUndo && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onUndo}
+              disabled={!canUndo || isRunning}
+              className="h-7 text-xs flex items-center gap-1 text-zinc-300 hover:text-cyan-400 hover:border-cyan-500/50 disabled:opacity-40 disabled:hover:text-zinc-300 disabled:hover:border-zinc-800 transition-colors"
+              title="Undo last change (Ctrl+Z / ⌘Z)"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Undo</span>
+            </Button>
+          )}
+
+          {onRedo && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onRedo}
+              disabled={!canRedo || isRunning}
+              className="h-7 text-xs flex items-center gap-1 text-zinc-300 hover:text-cyan-400 hover:border-cyan-500/50 disabled:opacity-40 disabled:hover:text-zinc-300 disabled:hover:border-zinc-800 transition-colors"
+              title="Redo last change (Ctrl+Y / ⇧⌘Z)"
+            >
+              <Redo2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Redo</span>
             </Button>
           )}
 

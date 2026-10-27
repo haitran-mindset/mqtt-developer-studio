@@ -117,12 +117,37 @@ export const StudioWorkbench: React.FC = () => {
         profile={editingProfile}
       />
 
-      {/* Global Notifications */}
+      {/* Global Notifications with distinctive color coding per toast type */}
       <Toaster
         theme="dark"
         position="bottom-right"
+        richColors
+        closeButton
         toastOptions={{
-          className: 'bg-zinc-900 text-zinc-100 border border-zinc-800 text-xs font-mono',
+          classNames: {
+            toast:
+              'group border text-xs font-sans shadow-2xl backdrop-blur-md transition-all duration-200 select-none !p-3.5 !rounded-lg',
+            title: 'text-xs font-semibold tracking-wide',
+            description: 'text-[11px] opacity-90 leading-relaxed mt-0.5',
+            actionButton:
+              'bg-zinc-800 text-zinc-100 hover:bg-zinc-700 font-sans text-xs px-2.5 py-1 rounded transition-colors',
+            cancelButton:
+              'bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 font-sans text-xs px-2.5 py-1 rounded transition-colors',
+            closeButton:
+              '!border-zinc-800/80 !bg-zinc-900/80 !text-zinc-400 hover:!text-zinc-100 transition-colors',
+            success:
+              '!bg-emerald-950/95 !text-emerald-100 !border-emerald-500/70 shadow-emerald-950/50 [&_[data-icon]]:!text-emerald-400',
+            error:
+              '!bg-rose-950/95 !text-rose-100 !border-rose-500/70 shadow-rose-950/50 [&_[data-icon]]:!text-rose-400',
+            warning:
+              '!bg-amber-950/95 !text-amber-100 !border-amber-500/70 shadow-amber-950/50 [&_[data-icon]]:!text-amber-400',
+            info:
+              '!bg-sky-950/95 !text-sky-100 !border-sky-500/70 shadow-sky-950/50 [&_[data-icon]]:!text-sky-400',
+            default:
+              '!bg-zinc-900/95 !text-zinc-100 !border-zinc-800 shadow-zinc-950/50 [&_[data-icon]]:!text-cyan-400',
+            loading:
+              '!bg-zinc-900/95 !text-zinc-100 !border-cyan-500/50 shadow-cyan-950/40 [&_[data-icon]]:!text-cyan-400',
+          },
         }}
       />
     </div>

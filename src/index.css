@@ -81,3 +81,49 @@ code, pre, .font-mono {
 .glow-rose {
   box-shadow: 0 0 15px -2px rgba(244, 63, 94, 0.4);
 }
+
+/* Distinctive Sonner Toast Themes */
+[data-sonner-toast] {
+  letter-spacing: -0.01em;
+}
+
+[data-sonner-toast][data-type="success"] {
+  background: rgba(6, 78, 59, 0.95) !important;
+  border-color: rgba(16, 185, 129, 0.65) !important;
+  color: #ecfdf5 !important;
+  box-shadow: 0 10px 25px -5px rgba(6, 78, 59, 0.5), 0 0 15px -3px rgba(16, 185, 129, 0.3) !important;
+}
+[data-sonner-toast][data-type="success"] [data-icon] {
+  color: #34d399 !important;
+}
+
+[data-sonner-toast][data-type="error"] {
+  background: rgba(76, 5, 25, 0.95) !important;
+  border-color: rgba(244, 63, 94, 0.65) !important;
+  color: #fff1f2 !important;
+  box-shadow: 0 10px 25px -5px rgba(76, 5, 25, 0.5), 0 0 15px -3px rgba(244, 63, 94, 0.3) !important;
+}
+[data-sonner-toast][data-type="error"] [data-icon] {
+  color: #fb7185 !important;
+}
+
+[data-sonner-toast][data-type="warning"] {
+  background: rgba(69, 26, 3, 0.95) !important;
+  border-color: rgba(245, 158, 11, 0.65) !important;
+  color: #fffbeb !important;
+  box-shadow: 0 10px 25px -5px rgba(69, 26, 3, 0.5), 0 0 15px -3px rgba(245, 158, 11, 0.3) !important;
+}
+[data-sonner-toast][data-type="warning"] [data-icon] {
+  color: #fbbf24 !important;
+}
+
+[data-sonner-toast][data-type="info"] {
+  background: rgba(8, 47, 73, 0.95) !important;
+  border-color: rgba(14, 165, 233, 0.65) !important;
+  color: #f0f9ff !important;
+  box-shadow: 0 10px 25px -5px rgba(8, 47, 73, 0.5), 0 0 15px -3px rgba(14, 165, 233, 0.3) !important;
+}
+[data-sonner-toast][data-type="info"] [data-icon] {
+  color: #38bdf8 !important;
+}
+
