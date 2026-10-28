@@ -688,6 +688,21 @@ export const WorkflowStudio: React.FC = () => {
     }
   };
 
+  // Listen to run-from-node quick triggers from custom nodes on canvas
+  const handleRunWorkflowRef = useRef(handleRunWorkflow);
+  handleRunWorkflowRef.current = handleRunWorkflow;
+
+  useEffect(() => {
+    const handleRunFromNodeEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ nodeId: string }>;
+      if (customEvent.detail?.nodeId) {
+        handleRunWorkflowRef.current(customEvent.detail.nodeId);
+      }
+    };
+    window.addEventListener('workflow:run-from-node', handleRunFromNodeEvent);
+    return () => window.removeEventListener('workflow:run-from-node', handleRunFromNodeEvent);
+  }, []);
+
   // Dynamically propagate start_label flow colors down to all connected descendant nodes and edges
   const { nodeColorMap, edgeColorMap } = useMemo(() => {
     return computeFlowColorMaps(nodes, edges);

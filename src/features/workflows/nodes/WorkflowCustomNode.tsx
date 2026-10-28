@@ -20,6 +20,7 @@ import {
   FileCheck,
   Flag,
   RotateCw,
+  Play,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { WorkflowStepType } from '@/core/workflow/types';
@@ -49,7 +50,7 @@ export const WorkflowCustomNode = memo(({ id, data, selected }: NodeProps) => {
   const nodeData = data as Record<string, any>;
   const stepType = (nodeData.stepType as WorkflowStepType) || 'publish';
   const status = String(nodeData.status || 'idle');
-  const label = String(nodeData.label || stepType);
+  const label = typeof nodeData.label === 'string' ? nodeData.label : stepType;
   const config = (nodeData.config as Record<string, any>) || {};
   const isDisabled = Boolean(nodeData.disabled);
 
@@ -130,6 +131,13 @@ export const WorkflowCustomNode = memo(({ id, data, selected }: NodeProps) => {
     toast.success('Randomized flow color');
   };
 
+  const handleRunFromHere = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.dispatchEvent(
+      new CustomEvent('workflow:run-from-node', { detail: { nodeId: id } })
+    );
+  };
+
   const handleLabelChange = (newLabel: string) => {
     setNodes((nds) =>
       nds.map((n) =>
@@ -153,7 +161,9 @@ export const WorkflowCustomNode = memo(({ id, data, selected }: NodeProps) => {
   // Specialized rendering for Start Flow Label node (Solid background, highlighted label, rotating icon)
   if (stepType === 'start_label') {
     const flowColor = (config.color as string) || '#06b6d4';
-    const flowName = String(config.label || label || 'Start Flow');
+    const flowName = typeof config.label === 'string'
+      ? config.label
+      : (typeof nodeData.label === 'string' ? nodeData.label : 'Start Flow');
 
     return (
       <div
@@ -175,8 +185,17 @@ export const WorkflowCustomNode = memo(({ id, data, selected }: NodeProps) => {
             </span>
           </div>
 
-          {/* Actions: Rotate Color, Duplicate, Delete */}
+          {/* Actions: Run, Rotate Color, Duplicate, Delete */}
           <div className="flex items-center gap-1 bg-black/25 rounded-md p-0.5 border border-white/20 backdrop-blur-xs">
+            <button
+              type="button"
+              onClick={handleRunFromHere}
+              title="Run workflow from this flow trigger"
+              className="p-1 rounded text-emerald-300 hover:text-white hover:bg-white/20 transition-colors"
+            >
+              <Play className="h-3.5 w-3.5 fill-emerald-300" />
+            </button>
+
             <button
               type="button"
               onClick={handleRandomizeColor}
@@ -317,8 +336,18 @@ export const WorkflowCustomNode = memo(({ id, data, selected }: NodeProps) => {
           </span>
         </div>
 
-        {/* Quick Actions (Duplicate, Delete, Power) */}
+        {/* Quick Actions (Run, Duplicate, Delete, Power) */}
         <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            type="button"
+            onClick={handleRunFromHere}
+            disabled={isDisabled}
+            title={isDisabled ? 'Step is disabled' : 'Run workflow from this step'}
+            className="p-1 rounded text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/50 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+          >
+            <Play className="h-3 w-3 fill-emerald-400" />
+          </button>
+
           <button
             type="button"
             onClick={handleDuplicate}

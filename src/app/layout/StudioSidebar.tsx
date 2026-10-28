@@ -219,10 +219,10 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
           {activeTab === 'connections' && (
             <button
               onClick={onOpenNewBrokerModal}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800/80 transition-colors"
+              className="p-1.5 rounded-lg bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500 hover:text-zinc-950 transition-all cursor-pointer shadow-xs"
               title="Add Broker Profile"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
             </button>
           )}
 
@@ -232,10 +232,10 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
                 setNewWorkflowDialogOpen(true);
                 setSidebarOpen(true);
               }}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800/80 transition-colors"
+              className="p-1.5 rounded-lg bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500 hover:text-zinc-950 transition-all cursor-pointer shadow-xs"
               title="Create New Workflow"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
             </button>
           )}
         </div>
@@ -320,26 +320,24 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
           {activeTab === 'connections' && (
             <Button
               size="sm"
-              variant="ghost"
               onClick={onOpenNewBrokerModal}
-              className="h-6 px-1.5 text-cyan-400 hover:text-cyan-300 hover:bg-zinc-800"
+              className="h-6 px-2 bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-semibold shadow-sm shadow-cyan-500/25 rounded-md text-[11px] flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
               title="Add Broker Profile"
             >
-              <Plus className="h-3.5 w-3.5 mr-0.5" />
-              <span className="text-[11px]">Add</span>
+              <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+              <span>Add</span>
             </Button>
           )}
 
           {activeTab === 'workflows' && (
             <Button
               size="sm"
-              variant="ghost"
               onClick={() => setNewWorkflowDialogOpen(true)}
-              className="h-6 px-1.5 text-cyan-400 hover:text-cyan-300 hover:bg-zinc-800"
+              className="h-6 px-2 bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-semibold shadow-sm shadow-cyan-500/25 rounded-md text-[11px] flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
               title="Create New Workflow"
             >
-              <Plus className="h-3.5 w-3.5 mr-0.5" />
-              <span className="text-[11px]">New</span>
+              <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+              <span>New</span>
             </Button>
           )}
 
@@ -406,27 +404,30 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
 
                     <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono">
                       <span>MQTT {profile.mqttVersion}</span>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-0.5">
                         <button
                           onClick={(e) => handleDuplicateProfile(e, profile)}
-                          className="p-1 hover:text-cyan-400 text-zinc-400"
+                          className="p-1 rounded text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800 transition-colors"
                           title="Duplicate Profile"
                         >
                           <Copy className="h-3 w-3" />
                         </button>
                         <button
-                          onClick={() => onEditBrokerModal(profile)}
-                          className="p-1 hover:text-zinc-200 text-zinc-400"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditBrokerModal(profile);
+                          }}
+                          className="p-1 rounded text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800 transition-colors"
                           title="Edit Settings"
                         >
-                          Edit
+                          <Pencil className="h-3 w-3" />
                         </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setDeleteProfileId(profile.id);
                           }}
-                          className="p-1 hover:text-rose-400 text-zinc-400"
+                          className="p-1 rounded text-zinc-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
                           title="Delete Profile"
                         >
                           <Trash2 className="h-3 w-3" />

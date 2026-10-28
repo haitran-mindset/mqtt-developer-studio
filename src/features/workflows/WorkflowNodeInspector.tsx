@@ -70,9 +70,9 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
   };
 
   return (
-    <div className="w-80 border-l border-zinc-800 bg-zinc-950 flex flex-col h-full overflow-y-auto select-none">
+    <div className="w-80 border-l border-zinc-800 bg-zinc-950 flex flex-col h-full overflow-hidden select-none">
       {/* Header */}
-      <div className="p-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/60">
+      <div className="p-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/60 shrink-0">
         <div>
           <span className="text-xs font-semibold text-zinc-100 block">Step Properties</span>
           <span className="text-[10px] font-mono text-cyan-400 uppercase">{stepType}</span>
@@ -112,8 +112,8 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
         </div>
       </div>
 
-      {/* Form Content */}
-      <div className="p-3 space-y-3 font-sans text-xs flex-1">
+      {/* Form Content (Scrollable) */}
+      <div className="p-3 space-y-3 font-sans text-xs flex-1 overflow-y-auto">
         {/* Step Label */}
         <div className="space-y-1.5">
           <Label className="text-[11px] font-medium text-zinc-300">Step Label</Label>
@@ -140,20 +140,6 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
           />
         </div>
 
-        {/* Run From Here Button */}
-        {onRunFromNode && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => onRunFromNode(id)}
-            className="w-full gap-1.5 text-xs border-cyan-800/60 bg-cyan-950/20 hover:bg-cyan-950/50 text-cyan-400 hover:text-cyan-300"
-          >
-            <Play className="h-3.5 w-3.5 fill-cyan-400" />
-            Run from this step
-          </Button>
-        )}
-
         {/* 1. Publish Step */}
         {stepType === 'publish' && (
           <div className="space-y-3 pt-2 border-t border-zinc-800">
@@ -163,6 +149,17 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
                 value={config.topic || ''}
                 onChange={(e) => handleUpdateConfig('topic', e.target.value)}
                 placeholder="e.g. devices/{{deviceId}}/command"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium text-zinc-300">Payload</Label>
+              <Textarea
+                value={config.payload || ''}
+                onChange={(e) => handleUpdateConfig('payload', e.target.value)}
+                rows={5}
+                placeholder='{"cmd": "restart", "reqId": "{{uuid}}"}'
+                className="w-full font-mono text-xs"
               />
             </div>
 
@@ -192,17 +189,6 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
                 />
                 <Label htmlFor="wf-retain" className="text-zinc-300 cursor-pointer">Retain</Label>
               </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-medium text-zinc-300">Payload</Label>
-              <Textarea
-                value={config.payload || ''}
-                onChange={(e) => handleUpdateConfig('payload', e.target.value)}
-                rows={5}
-                placeholder='{"cmd": "restart", "reqId": "{{uuid}}"}'
-                className="w-full font-mono text-xs"
-              />
             </div>
           </div>
         )}
@@ -685,6 +671,25 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
           </div>
         )}
       </div>
+
+      {/* Sticky Bottom Execution Footer */}
+      {onRunFromNode && (
+        <div className="p-3 border-t border-zinc-800 bg-zinc-900/95 backdrop-blur-md shrink-0 shadow-2xl">
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => onRunFromNode(id)}
+            disabled={Boolean(data.disabled)}
+            className="w-full h-8 gap-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-950/60 border border-emerald-400/40 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+          >
+            <Play className="h-3.5 w-3.5 fill-white text-white" />
+            <span>Run From This Step</span>
+          </Button>
+          <p className="text-[10px] text-zinc-400 text-center mt-1.5 font-mono">
+            Execute workflow starting from here
+          </p>
+        </div>
+      )}
     </div>
   );
 };
