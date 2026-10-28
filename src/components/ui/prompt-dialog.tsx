@@ -94,14 +94,14 @@ export const PromptDialog: React.FC<PromptDialogProps> = ({
             />
           </div>
 
-          <DialogFooter className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+          <DialogFooter className="flex flex-row items-center justify-end gap-2 pt-3 border-t border-zinc-800">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={loading}
-              className="text-xs font-sans h-8"
+              className="text-xs font-sans h-9 flex-1 sm:flex-initial sm:w-auto cursor-pointer"
             >
               {cancelText}
             </Button>
@@ -109,7 +109,7 @@ export const PromptDialog: React.FC<PromptDialogProps> = ({
               type="submit"
               size="sm"
               disabled={loading || !value.trim()}
-              className="text-xs font-sans h-8 font-medium shadow-md shadow-cyan-500/20"
+              className="text-xs font-sans h-9 font-medium shadow-md shadow-cyan-500/20 flex-1 sm:flex-initial sm:w-auto cursor-pointer"
             >
               {loading ? 'Processing...' : confirmText}
             </Button>

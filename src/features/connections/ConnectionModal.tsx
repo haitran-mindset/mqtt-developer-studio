@@ -757,18 +757,19 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
           </div>
 
           {/* Dialog Footer Actions */}
-          <div className="flex items-center justify-end gap-2 pt-4 border-t border-zinc-800">
+          <div className="flex flex-row items-center justify-end gap-2 pt-4 border-t border-zinc-800">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
+              className="flex-1 sm:flex-initial cursor-pointer"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="font-semibold"
+              className="font-semibold flex-1 sm:flex-initial cursor-pointer"
             >
               {profile ? "Save Changes" : "Create"}
             </Button>

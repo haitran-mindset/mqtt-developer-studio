@@ -74,14 +74,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           </div>
         </DialogHeader>
 
-        <DialogFooter className="flex items-center justify-end gap-2 pt-4 border-t border-zinc-800 mt-2">
+        <DialogFooter className="flex flex-row items-center justify-end gap-2 pt-4 border-t border-zinc-800 mt-2">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => onOpenChange(false)}
             disabled={loading}
-            className="text-xs font-sans h-8"
+            className="text-xs font-sans h-9 flex-1 sm:flex-initial sm:w-auto cursor-pointer"
           >
             {cancelText}
           </Button>
@@ -91,7 +91,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             size="sm"
             onClick={handleConfirm}
             disabled={loading}
-            className="text-xs font-sans h-8 font-medium"
+            className="text-xs font-sans h-9 font-medium flex-1 sm:flex-initial sm:w-auto cursor-pointer"
           >
             {loading ? 'Processing...' : confirmText}
           </Button>

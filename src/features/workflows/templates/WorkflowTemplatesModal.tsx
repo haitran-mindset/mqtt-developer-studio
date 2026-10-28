@@ -76,28 +76,28 @@ export const WorkflowTemplatesModal: React.FC<WorkflowTemplatesModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col bg-zinc-950 border-zinc-800 p-0 overflow-hidden shadow-2xl">
+      <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[85vh] flex flex-col bg-zinc-950 border-zinc-800 p-0 overflow-hidden shadow-2xl">
         {/* Header */}
-        <DialogHeader className="p-5 pb-3 border-b border-zinc-800/80 bg-zinc-900/30">
+        <DialogHeader className="p-4 sm:p-5 pb-3 border-b border-zinc-800/80 bg-zinc-900/30">
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+            <div className="h-7 w-7 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
               <Sparkles className="h-4 w-4" />
             </div>
-            <div>
+            <div className="min-w-0">
               <DialogTitle className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
                 <span>Workflow Templates Marketplace</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 shrink-0">
                   3 Presets
                 </span>
               </DialogTitle>
-              <DialogDescription className="text-xs text-zinc-400 mt-0.5">
+              <DialogDescription className="text-xs text-zinc-400 mt-0.5 truncate sm:text-clip">
                 Ready-to-use production scenarios: Heartbeat checker, IoT sensor simulation & automated interlock response.
               </DialogDescription>
             </div>
           </div>
 
           {/* Search & Category Filter */}
-          <div className="flex items-center gap-3 pt-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pt-3">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-zinc-500" />
               <Input
@@ -107,12 +107,12 @@ export const WorkflowTemplatesModal: React.FC<WorkflowTemplatesModalProps> = ({
                 className="pl-8 h-8 text-xs bg-zinc-900/80 border-zinc-800 text-zinc-200"
               />
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-0.5 sm:pb-0">
               {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer capitalize ${
+                  className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer capitalize whitespace-nowrap shrink-0 ${
                     selectedCategory === cat
                       ? 'bg-zinc-800 text-cyan-400 border border-zinc-700'
                       : 'text-zinc-500 hover:text-zinc-300'
@@ -126,7 +126,7 @@ export const WorkflowTemplatesModal: React.FC<WorkflowTemplatesModalProps> = ({
         </DialogHeader>
 
         {/* Templates Grid List */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-3">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-3">
           {filteredTemplates.length === 0 ? (
             <div className="text-center py-12 text-zinc-500 text-xs font-mono">
               No workflow templates matching current query.
@@ -135,16 +135,16 @@ export const WorkflowTemplatesModal: React.FC<WorkflowTemplatesModalProps> = ({
             filteredTemplates.map((template) => (
               <div
                 key={template.id}
-                className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/80 hover:border-cyan-500/50 transition-all flex flex-col justify-between group shadow-sm"
+                className="p-3.5 sm:p-4 rounded-xl border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/80 hover:border-cyan-500/50 transition-all flex flex-col justify-between group shadow-sm"
               >
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-start justify-between gap-3 mb-2.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2.5 min-w-0">
                       <span className="font-semibold text-sm text-zinc-100 group-hover:text-cyan-400 transition-colors">
                         {template.name}
                       </span>
                       <span
-                        className={`text-[10px] font-mono px-2 py-0.5 rounded border ${template.badgeColor}`}
+                        className={`text-[10px] font-mono px-2 py-0.5 rounded border whitespace-nowrap self-start sm:self-auto shrink-0 ${template.badgeColor}`}
                       >
                         {template.badge}
                       </span>
@@ -153,7 +153,7 @@ export const WorkflowTemplatesModal: React.FC<WorkflowTemplatesModalProps> = ({
                     <Button
                       size="sm"
                       onClick={() => handleApplyTemplate(template)}
-                      className="h-7 text-xs flex items-center gap-1.5 font-medium shadow-md shadow-cyan-500/10 cursor-pointer"
+                      className="h-7 px-2.5 sm:px-3 text-xs flex items-center gap-1.5 font-medium shadow-md shadow-cyan-500/10 cursor-pointer shrink-0"
                     >
                       <span>Use Template</span>
                       <ArrowRight className="h-3 w-3" />
