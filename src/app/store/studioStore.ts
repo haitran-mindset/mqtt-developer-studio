@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { ConnectionStatus, ConnectionEventLog } from '@/core/mqtt/types';
 import type { WorkflowStepRunLog } from '@/core/db/types';
 import {
@@ -17,6 +18,7 @@ interface StudioState {
   sidebarOpen: boolean;
   bottomPanelOpen: boolean;
   bottomPanelTab: BottomPanelTab;
+  workflowPaletteCollapsed: boolean;
 
   connectionStatuses: Record<string, { status: ConnectionStatus; error?: string }>;
   isPausedMessageStream: boolean;
@@ -35,6 +37,8 @@ interface StudioState {
   setBottomPanelOpen: (open: boolean) => void;
   toggleBottomPanel: () => void;
   setBottomPanelTab: (tab: BottomPanelTab) => void;
+  setWorkflowPaletteCollapsed: (collapsed: boolean) => void;
+  toggleWorkflowPalette: () => void;
   setConnectionStatus: (connectionId: string, status: ConnectionStatus, error?: string) => void;
   setIsPausedMessageStream: (paused: boolean) => void;
   setFilterTopic: (topic: string) => void;
@@ -45,53 +49,70 @@ interface StudioState {
   clearWorkflowLogs: () => void;
 }
 
-export const useStudioStore = create<StudioState>((set) => ({
-  activeTab: 'connections',
-  activeConnectionId: null,
-  activeWorkflowId: loadActiveWorkflowIdFromSession(),
+export const useStudioStore = create<StudioState>()(
+  persist(
+    (set) => ({
+      activeTab: 'connections',
+      activeConnectionId: null,
+      activeWorkflowId: loadActiveWorkflowIdFromSession(),
 
-  sidebarOpen: true,
-  bottomPanelOpen: true,
-  bottomPanelTab: 'connection_logs',
+      sidebarOpen: true,
+      bottomPanelOpen: true,
+      bottomPanelTab: 'connection_logs',
+      workflowPaletteCollapsed: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
 
-  connectionStatuses: {},
-  isPausedMessageStream: false,
+      connectionStatuses: {},
+      isPausedMessageStream: false,
 
-  filterTopic: '',
-  filterPayloadText: '',
+      filterTopic: '',
+      filterPayloadText: '',
 
-  logs: [],
-  workflowLogs: [],
+      logs: [],
+      workflowLogs: [],
 
-  setActiveTab: (tab) => set({ activeTab: tab }),
-  setActiveConnectionId: (id) => set({ activeConnectionId: id }),
-  setActiveWorkflowId: (id) => {
-    saveActiveWorkflowIdToSession(id);
-    set({ activeWorkflowId: id });
-  },
-  setSidebarOpen: (open) => set({ sidebarOpen: open }),
-  toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
-  setBottomPanelOpen: (open) => set({ bottomPanelOpen: open }),
-  toggleBottomPanel: () => set((state) => ({ bottomPanelOpen: !state.bottomPanelOpen })),
-  setBottomPanelTab: (tab) => set({ bottomPanelTab: tab, bottomPanelOpen: true }),
-  setConnectionStatus: (connectionId, status, error) =>
-    set((state) => ({
-      connectionStatuses: {
-        ...state.connectionStatuses,
-        [connectionId]: { status, error },
+      setActiveTab: (tab) => set({ activeTab: tab }),
+      setActiveConnectionId: (id) => set({ activeConnectionId: id }),
+      setActiveWorkflowId: (id) => {
+        saveActiveWorkflowIdToSession(id);
+        set({ activeWorkflowId: id });
       },
-    })),
-  setIsPausedMessageStream: (paused) => set({ isPausedMessageStream: paused }),
-  setFilterTopic: (topic) => set({ filterTopic: topic }),
-  setFilterPayloadText: (text) => set({ filterPayloadText: text }),
-  addLog: (log) =>
-    set((state) => ({
-      logs: [log, ...state.logs].slice(0, 1000), // Keep last 1000 logs
-    })),
-  clearLogs: () => set({ logs: [] }),
-  addWorkflowLog: (log) =>
-    set((state) => ({
-      workflowLogs: [log, ...state.workflowLogs].slice(0, 500),
-    })),
-  clearWorkflowLogs: () => set({ workflowLogs: [] }),
-}));
+      setSidebarOpen: (open) => set({ sidebarOpen: open }),
+      toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+      setBottomPanelOpen: (open) => set({ bottomPanelOpen: open }),
+      toggleBottomPanel: () => set((state) => ({ bottomPanelOpen: !state.bottomPanelOpen })),
+      setBottomPanelTab: (tab) => set({ bottomPanelTab: tab, bottomPanelOpen: true }),
+      setWorkflowPaletteCollapsed: (collapsed) => set({ workflowPaletteCollapsed: collapsed }),
+      toggleWorkflowPalette: () =>
+        set((state) => ({ workflowPaletteCollapsed: !state.workflowPaletteCollapsed })),
+      setConnectionStatus: (connectionId, status, error) =>
+        set((state) => ({
+          connectionStatuses: {
+            ...state.connectionStatuses,
+            [connectionId]: { status, error },
+          },
+        })),
+      setIsPausedMessageStream: (paused) => set({ isPausedMessageStream: paused }),
+      setFilterTopic: (topic) => set({ filterTopic: topic }),
+      setFilterPayloadText: (text) => set({ filterPayloadText: text }),
+      addLog: (log) =>
+        set((state) => ({
+          logs: [log, ...state.logs].slice(0, 1000), // Keep last 1000 logs
+        })),
+      clearLogs: () => set({ logs: [] }),
+      addWorkflowLog: (log) =>
+        set((state) => ({
+          workflowLogs: [log, ...state.workflowLogs].slice(0, 500),
+        })),
+      clearWorkflowLogs: () => set({ workflowLogs: [] }),
+    }),
+    {
+      name: 'mqtt_studio_layout_store',
+      partialize: (state) => ({
+        sidebarOpen: state.sidebarOpen,
+        bottomPanelOpen: state.bottomPanelOpen,
+        bottomPanelTab: state.bottomPanelTab,
+        workflowPaletteCollapsed: state.workflowPaletteCollapsed,
+      }),
+    }
+  )
+);

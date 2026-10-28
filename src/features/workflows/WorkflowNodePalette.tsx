@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { WorkflowStepType } from '@/core/workflow/types';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface WorkflowNodePaletteProps {
   onAddNode: (stepType: WorkflowStepType, label: string) => void;
@@ -90,30 +91,39 @@ export const WorkflowNodePalette: React.FC<WorkflowNodePaletteProps> = ({
   isCollapsed = false,
   onToggleCollapse,
 }) => {
+  const isMobile = useIsMobile();
+
+  const handleSelectNode = (type: WorkflowStepType, label: string) => {
+    onAddNode(type, label);
+    if (isMobile && onToggleCollapse) {
+      onToggleCollapse();
+    }
+  };
+
   if (isCollapsed) {
     return (
-      <div className="w-12 border-r border-zinc-800 bg-zinc-950 flex flex-col h-full overflow-y-auto py-2.5 items-center select-none shrink-0 transition-all duration-200">
-        {/* Expand Button */}
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={onToggleCollapse}
-          className="h-8 w-8 p-0 text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800 rounded-lg mb-2"
-          title="Expand Step Palette"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+      <div className="w-12 border-r border-zinc-800 bg-zinc-950 flex flex-col h-full select-none shrink-0 transition-all duration-200">
+        {/* Pinned Top Expand Button */}
+        <div className="h-12 flex items-center justify-center shrink-0 border-b border-zinc-800/60 bg-zinc-950">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onToggleCollapse}
+            className="h-8 w-8 p-0 text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800 rounded-lg cursor-pointer"
+            title="Expand Step Palette"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
 
-        <div className="w-6 h-[1px] bg-zinc-800 mb-2" />
-
-        {/* Step Icons List for 1-Click Quick Add */}
-        <div className="flex flex-col items-center gap-1.5 w-full px-1">
+        {/* Scrollable Step Icons List for 1-Click Quick Add */}
+        <div className="flex-1 overflow-y-auto py-2 flex flex-col items-center gap-1.5 w-full px-1 no-scrollbar">
           {PALETTE_GROUPS.flatMap((g) => g.items).map((item) => (
             <button
               key={item.type}
               type="button"
               onClick={() => onAddNode(item.type, item.label)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center bg-zinc-900/60 border border-zinc-800/90 hover:border-cyan-500/60 hover:bg-zinc-800 text-zinc-300 hover:text-cyan-300 transition-all relative group"
+              className="w-8 h-8 rounded-lg flex items-center justify-center bg-zinc-900/60 border border-zinc-800/90 hover:border-cyan-500/60 hover:bg-zinc-800 text-zinc-300 hover:text-cyan-300 transition-all relative group cursor-pointer"
               title={`${item.label} (${item.desc}) - Click to add`}
             >
               {item.icon}
@@ -125,58 +135,76 @@ export const WorkflowNodePalette: React.FC<WorkflowNodePaletteProps> = ({
   }
 
   return (
-    <div className="w-64 border-r border-zinc-800 bg-zinc-950 flex flex-col h-full overflow-y-auto p-3 space-y-4 select-none shrink-0 transition-all duration-200">
-      <div className="flex items-center justify-between pb-1 border-b border-zinc-800/60">
-        <div>
-          <h3 className="text-xs font-semibold text-zinc-100 flex items-center gap-1.5">
-            <Layers className="h-3.5 w-3.5 text-cyan-400" />
-            Step Palette
-          </h3>
-          <p className="text-[11px] text-zinc-500">Click to add node to canvas</p>
-        </div>
-
-        {onToggleCollapse && (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onToggleCollapse}
-            className="h-6 w-6 p-0 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
-            title="Collapse Step Palette"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-
-      {PALETTE_GROUPS.map((grp) => (
-        <div key={grp.groupName} className="space-y-1.5">
-          <span className="text-[10px] font-mono text-zinc-500 uppercase font-semibold">
-            {grp.groupName}
-          </span>
-
-          <div className="space-y-1">
-            {grp.items.map((item) => (
-              <div
-                key={item.type}
-                onClick={() => onAddNode(item.type, item.label)}
-                className="flex items-center justify-between p-2 rounded-lg border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900 hover:border-cyan-500/50 cursor-pointer transition-all group"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="p-1 rounded bg-zinc-800">{item.icon}</div>
-                  <div>
-                    <span className="text-xs font-medium text-zinc-200 block group-hover:text-cyan-400 transition-colors">
-                      {item.label}
-                    </span>
-                    <span className="text-[10px] text-zinc-500 block">{item.desc}</span>
-                  </div>
-                </div>
-
-                <Plus className="h-3.5 w-3.5 text-zinc-500 group-hover:text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            ))}
+    <>
+      {isMobile && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 md:hidden animate-in fade-in duration-200"
+          onClick={onToggleCollapse}
+        />
+      )}
+      <div
+        className={
+          isMobile
+            ? 'fixed top-12 bottom-14 left-0 w-72 max-w-[85vw] bg-zinc-950 border-r border-zinc-800 z-40 shadow-2xl flex flex-col select-none animate-in slide-in-from-left duration-200'
+            : 'w-64 border-r border-zinc-800 bg-zinc-950 flex flex-col h-full select-none shrink-0 transition-all duration-200'
+        }
+      >
+        {/* Pinned Sticky Header */}
+        <div className="h-12 px-3 border-b border-zinc-800/80 bg-zinc-950 flex items-center justify-between shrink-0">
+          <div>
+            <h3 className="text-xs font-semibold text-zinc-100 flex items-center gap-1.5">
+              <Layers className="h-3.5 w-3.5 text-cyan-400" />
+              Step Palette
+            </h3>
+            <p className="text-[10px] text-zinc-500">Click to add node to canvas</p>
           </div>
+
+          {onToggleCollapse && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onToggleCollapse}
+              className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-md cursor-pointer"
+              title="Collapse Step Palette"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          )}
         </div>
-      ))}
-    </div>
+
+        {/* Scrollable Step Items Body */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-4">
+          {PALETTE_GROUPS.map((grp) => (
+            <div key={grp.groupName} className="space-y-1.5">
+              <span className="text-[10px] font-mono text-zinc-500 uppercase font-semibold">
+                {grp.groupName}
+              </span>
+
+              <div className="space-y-1">
+                {grp.items.map((item) => (
+                  <div
+                    key={item.type}
+                    onClick={() => handleSelectNode(item.type, item.label)}
+                    className="flex items-center justify-between p-2 rounded-lg border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900 hover:border-cyan-500/50 cursor-pointer transition-all group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="p-1 rounded bg-zinc-800">{item.icon}</div>
+                      <div>
+                        <span className="text-xs font-medium text-zinc-200 block group-hover:text-cyan-400 transition-colors">
+                          {item.label}
+                        </span>
+                        <span className="text-[10px] text-zinc-500 block">{item.desc}</span>
+                      </div>
+                    </div>
+
+                    <Plus className="h-3.5 w-3.5 text-zinc-500 group-hover:text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
   );
 };

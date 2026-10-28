@@ -1,18 +1,12 @@
 import React from 'react';
 import {
-  Radio,
-  Send,
-  Inbox,
-  GitBranch,
-  Server,
   Terminal,
-  Activity,
   Power,
-  ChevronDown,
   Save,
   ShieldCheck,
+  Menu,
 } from 'lucide-react';
-import { useStudioStore, type StudioTab } from '../store/studioStore';
+import { useStudioStore } from '../store/studioStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -39,6 +33,8 @@ import {
   enableSessionPersistWithSync,
 } from '@/core/storage/sessionStorageManager';
 
+import { STUDIO_NAV_ITEMS } from './navigation';
+
 export const StudioHeader: React.FC = () => {
   const {
     activeTab,
@@ -48,6 +44,7 @@ export const StudioHeader: React.FC = () => {
     connectionStatuses,
     bottomPanelOpen,
     toggleBottomPanel,
+    toggleSidebar,
   } = useStudioStore();
 
   const [sessionPersist, setSessionPersist] = React.useState(() => isSessionPersistEnabled());
@@ -105,19 +102,23 @@ export const StudioHeader: React.FC = () => {
     }
   };
 
-  const navItems: { tab: StudioTab; label: string; icon: React.ReactNode }[] = [
-    { tab: 'connections', label: 'Brokers', icon: <Server className="h-3.5 w-3.5" /> },
-    { tab: 'publisher', label: 'Publisher', icon: <Send className="h-3.5 w-3.5" /> },
-    { tab: 'subscriber', label: 'Live Stream', icon: <Inbox className="h-3.5 w-3.5" /> },
-    { tab: 'workflows', label: 'Workflows', icon: <GitBranch className="h-3.5 w-3.5" /> },
-  ];
-
   return (
-    <header className="h-12 border-b border-zinc-800 bg-zinc-950 px-4 flex items-center justify-between shrink-0 select-none">
-      {/* Brand & Title */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-md bg-gradient-to-br from-cyan-500/20 to-blue-500/10 border border-cyan-500/30 p-1 flex items-center justify-center shadow-lg shadow-cyan-500/10">
+    <header className="h-12 border-b border-zinc-800 bg-zinc-950 px-2 sm:px-3 lg:px-4 flex items-center justify-between shrink-0 select-none gap-1.5 sm:gap-2 w-full max-w-full">
+      {/* Brand & Left Controls */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
+        {/* Mobile Hamburger Drawer Trigger */}
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={toggleSidebar}
+          className="md:hidden h-8 w-8 p-0 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 shrink-0"
+          title="Open drawer menu"
+        >
+          <Menu className="h-4 w-4" />
+        </Button>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="h-6 w-6 rounded-md bg-gradient-to-br from-cyan-500/20 to-blue-500/10 border border-cyan-500/30 p-1 flex items-center justify-center shadow-lg shadow-cyan-500/10 shrink-0">
             <svg role="img" viewBox="0 0 24 24" fill="none" className="w-4 h-4">
               <path
                 fill="#22d3ee"
@@ -125,27 +126,27 @@ export const StudioHeader: React.FC = () => {
               />
             </svg>
           </div>
-          <span className="font-semibold text-xs tracking-wide bg-gradient-to-r from-zinc-100 via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
+          <span className="font-semibold text-xs tracking-wide bg-gradient-to-r from-zinc-100 via-zinc-200 to-zinc-400 bg-clip-text text-transparent hidden sm:inline whitespace-nowrap">
             MQTT <span className="text-cyan-400 font-bold">STUDIO</span>
           </span>
-          <span className="text-[10px] text-zinc-500 border border-zinc-800 rounded px-1.5 py-0.2 bg-zinc-900/50">
+          <span className="text-[10px] text-zinc-500 border border-zinc-800 rounded px-1.5 py-0.2 bg-zinc-900/50 hidden 2xl:inline">
             v1.0
           </span>
         </div>
 
         {/* Separator */}
-        <Separator orientation="vertical" className="h-5 mx-1" />
+        <Separator orientation="vertical" className="h-5 mx-1 hidden sm:block shrink-0" />
 
         {/* Active Broker Selector */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-zinc-400 font-medium">Broker:</span>
+            <span className="text-[11px] text-zinc-400 font-medium hidden xl:inline">Broker:</span>
             {profiles.length > 0 ? (
               <Select
                 value={activeConnectionId || activeProfile?.id || ''}
                 onValueChange={(val) => setActiveConnectionId(val)}
               >
-                <SelectTrigger className="h-7 min-w-[190px] max-w-[240px] text-xs font-sans">
+                <SelectTrigger className="h-7 w-[105px] sm:w-[130px] lg:w-[160px] xl:w-[200px] text-xs font-sans">
                   <SelectValue placeholder="Select broker..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -172,7 +173,7 @@ export const StudioHeader: React.FC = () => {
                 </SelectContent>
               </Select>
             ) : (
-              <span className="text-xs text-zinc-500 italic">No brokers</span>
+              <span className="text-xs text-zinc-500 italic whitespace-nowrap">No brokers</span>
             )}
           </div>
 
@@ -182,10 +183,11 @@ export const StudioHeader: React.FC = () => {
               size="sm"
               variant={currentStatus === 'connected' ? 'destructive' : 'default'}
               onClick={handleToggleConnect}
-              className="h-7 text-xs flex items-center gap-1.5"
+              className="h-7 px-2 sm:px-2.5 text-xs flex items-center gap-1.5 shrink-0"
+              title={currentStatus === 'connected' ? 'Disconnect' : 'Connect'}
             >
               <Power className="h-3 w-3" />
-              <span>
+              <span className="hidden xl:inline">
                 {currentStatus === 'connected'
                   ? 'Disconnect'
                   : currentStatus === 'connecting'
@@ -197,51 +199,56 @@ export const StudioHeader: React.FC = () => {
 
           {/* Status Badge */}
           {currentStatus === 'connected' ? (
-            <Badge variant="emerald" className="gap-1 animate-pulse">
+            <Badge variant="emerald" className="gap-1 animate-pulse px-1.5 lg:px-2 shrink-0">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Connected
+              <span className="hidden xl:inline">Connected</span>
             </Badge>
           ) : currentStatus === 'connecting' ? (
-            <Badge variant="amber" className="gap-1 animate-spin">
+            <Badge variant="amber" className="gap-1 animate-spin px-1.5 lg:px-2 shrink-0">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-              Connecting
+              <span className="hidden xl:inline">Connecting</span>
             </Badge>
           ) : (
-            <Badge variant="outline" className="gap-1 text-zinc-400">
+            <Badge variant="outline" className="gap-1 text-zinc-400 px-1.5 lg:px-2 shrink-0">
               <span className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
-              Disconnected
+              <span className="hidden xl:inline">Disconnected</span>
             </Badge>
           )}
         </div>
       </div>
 
-      {/* Center Navigation Tabs */}
-      <nav className="flex items-center bg-zinc-900/80 p-0.5 rounded-lg border border-zinc-800/80">
-        {navItems.map((item) => (
-          <button
-            key={item.tab}
-            onClick={() => setActiveTab(item.tab)}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${
-              activeTab === item.tab
-                ? 'bg-zinc-800 text-cyan-400 shadow-sm border border-zinc-700/60 font-semibold'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
-            }`}
-          >
-            {item.icon}
-            <span>{item.label}</span>
-          </button>
-        ))}
+      {/* Center Navigation Tabs (Tablet/Desktop: Icon-only on md, Icon+Text on lg+) */}
+      <nav className="hidden md:flex items-center bg-zinc-900/80 p-0.5 rounded-lg border border-zinc-800/80 shrink-0">
+        {STUDIO_NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              title={item.label}
+              className={`flex items-center gap-1.5 px-2 lg:px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                isActive
+                  ? 'bg-zinc-800 text-cyan-400 shadow-sm border border-zinc-700/60 font-semibold'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              <span className="hidden lg:inline">{item.label}</span>
+            </button>
+          );
+        })}
       </nav>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {/* Session Storage Persist Switch */}
         <TooltipProvider delayDuration={150}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex items-center gap-2 px-2.5 h-7 rounded-md bg-zinc-900 border border-zinc-800 text-xs shadow-sm hover:border-zinc-700 transition-colors">
+              <div className="flex items-center gap-1.5 px-2 h-7 rounded-md bg-zinc-900 border border-zinc-800 text-xs shadow-sm hover:border-zinc-700 transition-colors cursor-pointer shrink-0">
                 <Save className={`h-3.5 w-3.5 transition-colors ${sessionPersist ? 'text-cyan-400' : 'text-zinc-500'}`} />
-                <span className="text-[11px] font-medium text-zinc-300 select-none whitespace-nowrap">
+                <span className="text-[11px] font-medium text-zinc-300 select-none whitespace-nowrap hidden xl:inline">
                   Save Session
                 </span>
                 <Switch
@@ -271,11 +278,11 @@ export const StudioHeader: React.FC = () => {
           size="sm"
           variant={bottomPanelOpen ? 'secondary' : 'outline'}
           onClick={toggleBottomPanel}
-          className="h-7 text-xs flex items-center gap-1 text-zinc-300"
+          className="h-7 px-2 lg:px-3 text-xs flex items-center gap-1 text-zinc-300 shrink-0"
           title="Toggle Console Log Panel"
         >
           <Terminal className="h-3 w-3 text-cyan-400" />
-          <span>Console</span>
+          <span className="hidden lg:inline">Console</span>
         </Button>
       </div>
     </header>

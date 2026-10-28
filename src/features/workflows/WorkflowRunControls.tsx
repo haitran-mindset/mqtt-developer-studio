@@ -75,10 +75,10 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
   return (
     <div className="border-b border-zinc-800 bg-zinc-900/50 select-none shrink-0 text-xs">
       {/* Row 1: Workflow Management (Selection, Templates, Rename, Duplicate, Save, Delete) */}
-      <div className="h-10 px-4 flex items-center justify-between border-b border-zinc-800/60 bg-zinc-900/80">
+      <div className="min-h-10 px-2 sm:px-4 py-1.5 flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-800/60 bg-zinc-900/80 gap-2">
         {/* Left: Workflow Selection & Templates */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <span className="text-[11px] text-zinc-400 font-medium">Workflow:</span>
             {workflows.length > 0 ? (
               <Select
@@ -88,7 +88,7 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
                   if (selected) onSelectWorkflow(selected);
                 }}
               >
-                <SelectTrigger className="h-7 min-w-[180px] max-w-[260px] text-xs font-sans">
+                <SelectTrigger className="h-7 w-[160px] sm:min-w-[180px] sm:max-w-[260px] text-xs font-sans">
                   <SelectValue placeholder="Select workflow..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -110,7 +110,7 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
               variant="outline"
               onClick={onOpenTemplates}
               disabled={isRunning}
-              className="h-7 text-xs flex items-center gap-1.5 text-cyan-400 border-cyan-800/60 bg-cyan-950/20 hover:bg-cyan-950/40 font-medium"
+              className="h-7 text-xs flex items-center gap-1.5 text-cyan-400 border-cyan-800/60 bg-cyan-950/20 hover:bg-cyan-950/40 font-medium shrink-0"
               title="Browse Workflow Templates Library"
             >
               <Sparkles className="h-3 w-3" />
@@ -120,7 +120,7 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
         </div>
 
         {/* Right: Actions (Rename, Duplicate, Save, Delete) */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 shrink-0 justify-between md:justify-end">
           {onRenameWorkflow && (
             <Button
               size="sm"
@@ -210,10 +210,10 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
       </div>
 
       {/* Row 2: Status & Execution Controls (Status, Export, Import, Reset, Run/Abort) */}
-      <div className="h-10 px-4 flex items-center justify-between bg-zinc-950/50">
+      <div className="min-h-10 px-2 sm:px-4 py-1.5 flex flex-col md:flex-row md:items-center justify-between bg-zinc-950/50 gap-2">
         {/* Left: Execution Status Indicator */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900/80 border border-zinc-800 text-[11px] font-mono text-zinc-300">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 shrink-0">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900/80 border border-zinc-800 text-[11px] font-mono text-zinc-300 shrink-0">
             <span
               className={`w-2 h-2 rounded-full ${
                 isRunning
@@ -224,20 +224,20 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
             <span className="font-medium text-zinc-200">
               {isRunning ? 'Running:' : 'Status:'}
             </span>
-            <span className="text-zinc-400">
+            <span className="text-zinc-400 truncate max-w-[150px] sm:max-w-none">
               {statusText || (currentWorkflow ? 'Ready' : 'No workflow loaded')}
             </span>
           </div>
 
           {currentWorkflow && (
-            <span className="text-[11px] font-mono text-zinc-500">
+            <span className="text-[11px] font-mono text-zinc-500 shrink-0">
               ({currentWorkflow.nodes?.length || 0} nodes, {currentWorkflow.edges?.length || 0} links)
             </span>
           )}
         </div>
 
         {/* Right: Export/Import, Reset, Run/Abort */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 shrink-0 justify-between md:justify-end">
           {onExportWorkflow && (
             <Button
               size="sm"

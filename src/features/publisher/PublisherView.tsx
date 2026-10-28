@@ -278,11 +278,12 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-zinc-950">
       {/* Top Publish Controls Bar */}
-      <div className="p-3 border-b border-zinc-800 bg-zinc-900/40 space-y-3">
-        <div className="flex items-center gap-2">
+      <div className="p-2.5 sm:p-3 border-b border-zinc-800 bg-zinc-900/40 space-y-2 sm:space-y-3">
+        {/* Controls: stacked on mobile, single row on desktop */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           {/* Topic input */}
-          <div className="flex-1 flex items-center bg-zinc-900 border border-zinc-800 rounded-md px-2.5 py-0.5 focus-within:ring-1 focus-within:ring-cyan-500 focus-within:border-cyan-500">
-            <span className="text-[11px] font-mono text-cyan-400 font-semibold mr-2 select-none">
+          <div className="flex-1 flex items-center bg-zinc-900 border border-zinc-800 rounded-md px-2.5 py-0.5 focus-within:ring-1 focus-within:ring-cyan-500 focus-within:border-cyan-500 min-w-0">
+            <span className="text-[11px] font-mono text-cyan-400 font-semibold mr-2 select-none shrink-0">
               TOPIC:
             </span>
             <input
@@ -294,45 +295,48 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
             />
           </div>
 
-          {/* QoS Selector */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[11px] text-zinc-400 font-medium select-none">QoS:</span>
-            <Select value={String(qos)} onValueChange={(val) => setQos(Number(val) as QoS)}>
-              <SelectTrigger className="w-[145px] h-8 text-xs font-mono">
-                <SelectValue placeholder="QoS" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">0 - At most once</SelectItem>
-                <SelectItem value="1">1 - At least once</SelectItem>
-                <SelectItem value="2">2 - Exactly once</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Action Row on Mobile: QoS + Retain + Publish */}
+          <div className="flex items-center gap-2 justify-between sm:justify-start">
+            {/* QoS Selector */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[11px] text-zinc-400 font-medium select-none hidden xs:inline">QoS:</span>
+              <Select value={String(qos)} onValueChange={(val) => setQos(Number(val) as QoS)}>
+                <SelectTrigger className="w-[125px] sm:w-[145px] h-8 text-xs font-mono">
+                  <SelectValue placeholder="QoS" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">0 - At most once</SelectItem>
+                  <SelectItem value="1">1 - At least once</SelectItem>
+                  <SelectItem value="2">2 - Exactly once</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Retain Switch */}
-          <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-md px-2.5 h-8 text-xs shrink-0">
-            <Switch id="pub-retain" checked={retain} onCheckedChange={setRetain} />
-            <Label htmlFor="pub-retain" className="text-zinc-300 select-none text-[11px] cursor-pointer">
-              Retain
-            </Label>
-          </div>
+            {/* Retain Switch */}
+            <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-md px-2.5 h-8 text-xs shrink-0">
+              <Switch id="pub-retain" checked={retain} onCheckedChange={setRetain} />
+              <Label htmlFor="pub-retain" className="text-zinc-300 select-none text-[11px] cursor-pointer">
+                Retain
+              </Label>
+            </div>
 
-          {/* Publish Once Button */}
-          <Button
-            onClick={handlePublish}
-            disabled={isPublishingRepeat}
-            className="flex items-center gap-1.5 font-semibold text-xs h-8 px-4"
-          >
-            <Send className="h-3.5 w-3.5" />
-            <span>Publish</span>
-          </Button>
+            {/* Publish Once Button */}
+            <Button
+              onClick={handlePublish}
+              disabled={isPublishingRepeat}
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 font-semibold text-xs h-8 px-4 shadow-md shadow-cyan-500/20"
+            >
+              <Send className="h-3.5 w-3.5" />
+              <span>Publish</span>
+            </Button>
+          </div>
         </div>
 
         {/* Secondary Toolbar: Format, Dynamic Variables, Prettify, Repeat */}
-        <div className="flex items-center justify-between text-xs pt-1">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col md:flex-row md:items-center justify-between text-xs pt-1 gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 shrink-0">
             {/* Format selector */}
-            <div className="flex items-center gap-1 bg-zinc-900/80 p-0.5 rounded border border-zinc-800">
+            <div className="flex items-center gap-1 bg-zinc-900/80 p-0.5 rounded border border-zinc-800 shrink-0">
               {(['json', 'text', 'xml', 'hex', 'base64'] as PayloadFormat[]).map((fmt) => (
                 <button
                   key={fmt}
@@ -353,10 +357,10 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
               size="sm"
               variant="outline"
               onClick={() => setVariableModalOpen(true)}
-              className="h-6 text-[11px] flex items-center gap-1 text-cyan-400 border-cyan-800/50 hover:bg-cyan-950/40"
+              className="h-6 text-[11px] flex items-center gap-1 text-cyan-400 border-cyan-800/50 hover:bg-cyan-950/40 shrink-0"
             >
               <Sparkles className="h-3 w-3" />
-              <span>Insert Variable</span>
+              <span className="whitespace-nowrap">Insert Variable</span>
             </Button>
 
             {/* Preview button */}
@@ -364,10 +368,10 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
               size="sm"
               variant="ghost"
               onClick={handleOpenPreview}
-              className="h-6 text-[11px] flex items-center gap-1 text-zinc-300"
+              className="h-6 text-[11px] flex items-center gap-1 text-zinc-300 shrink-0"
             >
               <Eye className="h-3 w-3" />
-              <span>Preview Resolved</span>
+              <span className="whitespace-nowrap">Preview</span>
             </Button>
 
             {format === 'json' && (
@@ -376,7 +380,7 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
                   size="sm"
                   variant="ghost"
                   onClick={handleFormatJson}
-                  className="h-6 text-[11px] text-zinc-400 hover:text-zinc-200"
+                  className="h-6 text-[11px] text-zinc-400 hover:text-zinc-200 shrink-0"
                   title="Format JSON"
                 >
                   <AlignLeft className="h-3 w-3 mr-1" />
@@ -387,7 +391,7 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
                   size="sm"
                   variant="ghost"
                   onClick={handleMinifyJson}
-                  className="h-6 text-[11px] text-zinc-400 hover:text-zinc-200"
+                  className="h-6 text-[11px] text-zinc-400 hover:text-zinc-200 shrink-0"
                   title="Minify JSON"
                 >
                   <Minimize2 className="h-3 w-3 mr-1" />
@@ -398,8 +402,8 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
           </div>
 
           {/* Right Tools: Repeat Publish & Save Preset */}
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono text-zinc-500">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 shrink-0 justify-between md:justify-end">
+            <span className="text-[11px] font-mono text-zinc-500 shrink-0">
               Size: <span className="text-zinc-300">{formatBytes(payloadBytes)}</span>
             </span>
 
@@ -499,7 +503,7 @@ export const PublisherView: React.FC<PublisherViewProps> = ({ initialPreset }) =
       </div>
 
       {/* Monaco Code Editor Area */}
-      <div className="flex-1 w-full relative">
+      <div className="flex-1 w-full min-h-[220px] relative">
         <Editor
           height="100%"
           language={format === 'json' ? 'json' : format === 'xml' ? 'xml' : 'plaintext'}

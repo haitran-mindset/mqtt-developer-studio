@@ -9,7 +9,9 @@ import {
   Binary,
   AlignLeft,
   Sparkles,
+  ArrowLeft,
 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { StoredMessage } from '@/core/db/types';
@@ -33,6 +35,7 @@ export const MessageDetailInspector: React.FC<MessageDetailInspectorProps> = ({
   const [activeView, setActiveView] = useState<'pretty' | 'tree' | 'hex' | 'raw'>('pretty');
   const [copiedPayload, setCopiedPayload] = useState(false);
   const [copiedTopic, setCopiedTopic] = useState(false);
+  const isMobile = useIsMobile();
 
   if (!message) {
     return (
@@ -71,6 +74,19 @@ export const MessageDetailInspector: React.FC<MessageDetailInspectorProps> = ({
       <div className="p-3 border-b border-zinc-800 bg-zinc-900/60 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
+            {isMobile && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onClose}
+                className="h-6 px-2 text-xs font-semibold text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/40 mr-1"
+                title="Back to messages"
+              >
+                <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+                <span>Back</span>
+              </Button>
+            )}
+
             <Badge
               variant={message.direction === 'in' ? 'cyan' : 'emerald'}
               className="uppercase text-[9px] py-0 px-1.5"
@@ -78,7 +94,7 @@ export const MessageDetailInspector: React.FC<MessageDetailInspectorProps> = ({
               {message.direction === 'in' ? 'Inbound' : 'Outbound'}
             </Badge>
 
-            <span className="text-[11px] font-mono text-zinc-400">
+            <span className="text-[11px] font-mono text-zinc-400 truncate max-w-[130px] sm:max-w-none">
               {format(message.timestamp, 'yyyy-MM-dd HH:mm:ss.SSS')}
             </span>
           </div>

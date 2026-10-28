@@ -15,7 +15,9 @@ import {
   Sparkles,
   PanelLeftClose,
   PanelLeftOpen,
+  X,
 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { useStudioStore } from '../store/studioStore';
 import { useDataStore } from '@/core/store/dataStore';
 import { Button } from '@/components/ui/button';
@@ -50,6 +52,8 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
     toggleSidebar,
     setSidebarOpen,
   } = useStudioStore();
+
+  const isMobile = useIsMobile();
 
   const profiles = useDataStore((state) => state.connectionProfiles);
   const publishPresets = useDataStore((state) => state.publishPresets);
@@ -146,8 +150,58 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
     toast.success(`Workflow duplicated: "${newName}"`);
   };
 
-  // Render Collapsed Slim Rail (w-12)
-  if (!sidebarOpen) {
+  const renderDialogs = () => (
+    <>
+      <ConfirmDialog
+        open={!!deleteProfileId}
+        onOpenChange={(open) => !open && setDeleteProfileId(null)}
+        title="Delete Broker Profile"
+        description="Are you sure you want to delete this broker profile? Any active connection will be closed immediately."
+        confirmText="Delete"
+        variant="destructive"
+        onConfirm={handleConfirmDeleteProfile}
+      />
+      <ConfirmDialog
+        open={!!deleteWorkflowTarget}
+        onOpenChange={(open) => !open && setDeleteWorkflowTarget(null)}
+        title="Delete Workflow"
+        description={`Are you sure you want to delete workflow "${deleteWorkflowTarget?.name}"? All steps and connections within it will be removed.`}
+        confirmText="Delete Workflow"
+        variant="destructive"
+        onConfirm={handleConfirmDeleteWorkflow}
+      />
+      <PromptDialog
+        open={!!renameWorkflowTarget}
+        onOpenChange={(open) => !open && setRenameWorkflowTarget(null)}
+        title="Rename Workflow"
+        description="Update the name of this automation workflow."
+        label="Workflow Name"
+        defaultValue={renameWorkflowTarget?.name || ''}
+        placeholder="e.g. Device Provisioning & Command Flow"
+        confirmText="Save Name"
+        onConfirm={handleConfirmRenameWorkflow}
+      />
+      <PromptDialog
+        open={newWorkflowDialogOpen}
+        onOpenChange={setNewWorkflowDialogOpen}
+        title="Create New Workflow"
+        description="Enter a descriptive name for your visual automation flow."
+        label="Workflow Name"
+        defaultValue="New Automation Workflow"
+        placeholder="e.g. Device Provisioning & Command Flow"
+        confirmText="Create Workflow"
+        onConfirm={handleConfirmNewWorkflow}
+      />
+    </>
+  );
+
+  // On Mobile: when sidebar is closed, don't show slim rail, only dialogs
+  if (isMobile && !sidebarOpen) {
+    return renderDialogs();
+  }
+
+  // On Desktop: Render Collapsed Slim Rail (w-12)
+  if (!isMobile && !sidebarOpen) {
     return (
       <aside className="w-12 border-r border-zinc-800 bg-zinc-950 flex flex-col shrink-0 select-none items-center py-2 justify-between transition-all duration-200">
         <div className="flex flex-col items-center gap-3 w-full">
@@ -240,53 +294,26 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
           )}
         </div>
 
-        {/* Dialogs still accessible */}
-        <ConfirmDialog
-          open={!!deleteProfileId}
-          onOpenChange={(open) => !open && setDeleteProfileId(null)}
-          title="Delete Broker Profile"
-          description="Are you sure you want to delete this broker profile? Any active connection will be closed immediately."
-          confirmText="Delete"
-          variant="destructive"
-          onConfirm={handleConfirmDeleteProfile}
-        />
-        <ConfirmDialog
-          open={!!deleteWorkflowTarget}
-          onOpenChange={(open) => !open && setDeleteWorkflowTarget(null)}
-          title="Delete Workflow"
-          description={`Are you sure you want to delete workflow "${deleteWorkflowTarget?.name}"? All steps and connections within it will be removed.`}
-          confirmText="Delete Workflow"
-          variant="destructive"
-          onConfirm={handleConfirmDeleteWorkflow}
-        />
-        <PromptDialog
-          open={!!renameWorkflowTarget}
-          onOpenChange={(open) => !open && setRenameWorkflowTarget(null)}
-          title="Rename Workflow"
-          description="Update the name of this automation workflow."
-          label="Workflow Name"
-          defaultValue={renameWorkflowTarget?.name || ''}
-          placeholder="e.g. Device Provisioning & Command Flow"
-          confirmText="Save Name"
-          onConfirm={handleConfirmRenameWorkflow}
-        />
-        <PromptDialog
-          open={newWorkflowDialogOpen}
-          onOpenChange={setNewWorkflowDialogOpen}
-          title="Create New Workflow"
-          description="Enter a descriptive name for your visual automation flow."
-          label="Workflow Name"
-          defaultValue="New Automation Workflow"
-          placeholder="e.g. Device Provisioning & Command Flow"
-          confirmText="Create Workflow"
-          onConfirm={handleConfirmNewWorkflow}
-        />
+        {renderDialogs()}
       </aside>
     );
   }
 
   return (
-    <aside className="w-64 border-r border-zinc-800 bg-zinc-950 flex flex-col shrink-0 select-none transition-all duration-200">
+    <>
+      {isMobile && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 md:hidden animate-in fade-in duration-200"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      <aside
+        className={
+          isMobile
+            ? 'fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-zinc-950 border-r border-zinc-800 z-50 shadow-2xl flex flex-col select-none animate-in slide-in-from-left duration-200'
+            : 'w-64 border-r border-zinc-800 bg-zinc-950 flex flex-col shrink-0 select-none transition-all duration-200'
+        }
+      >
       {/* Sidebar Header */}
       <div className="h-10 border-b border-zinc-800 px-3 flex items-center justify-between bg-zinc-900/40">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300">
@@ -341,16 +368,28 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
             </Button>
           )}
 
-          {/* Collapse Sidebar Button */}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={toggleSidebar}
-            className="h-6 w-6 p-0 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 ml-0.5"
-            title="Collapse sidebar"
-          >
-            <PanelLeftClose className="h-3.5 w-3.5" />
-          </Button>
+          {/* Close Drawer Button on Mobile / Collapse Sidebar Button on Desktop */}
+          {isMobile ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSidebarOpen(false)}
+              className="h-6 w-6 p-0 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 ml-0.5 cursor-pointer"
+              title="Close drawer"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={toggleSidebar}
+              className="h-6 w-6 p-0 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 ml-0.5 cursor-pointer"
+              title="Collapse sidebar"
+            >
+              <PanelLeftClose className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -373,7 +412,10 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
                 return (
                   <div
                     key={profile.id}
-                    onClick={() => setActiveConnectionId(profile.id)}
+                    onClick={() => {
+                      setActiveConnectionId(profile.id);
+                      if (isMobile) setSidebarOpen(false);
+                    }}
                     className={`group relative p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
                       isSelected
                         ? 'bg-zinc-900/90 border-cyan-500/50 shadow-sm shadow-cyan-950/20'
@@ -447,7 +489,10 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
             {publishPresets.map((preset) => (
               <div
                 key={preset.id}
-                onClick={() => onSelectPublishPreset && onSelectPublishPreset(preset)}
+                onClick={() => {
+                  if (onSelectPublishPreset) onSelectPublishPreset(preset);
+                  if (isMobile) setSidebarOpen(false);
+                }}
                 className="group p-2.5 rounded-lg border border-zinc-800/80 bg-zinc-900/40 hover:bg-zinc-900/70 hover:border-zinc-700 text-xs cursor-pointer transition-all"
               >
                 <div className="flex items-center justify-between mb-1">
@@ -490,6 +535,7 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
                   onClick={() => {
                     setActiveWorkflowId(wf.id);
                     if (onSelectWorkflow) onSelectWorkflow(wf);
+                    if (isMobile) setSidebarOpen(false);
                   }}
                   className={`group p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
                     isSelected
@@ -557,53 +603,8 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
         )}
       </div>
 
-      {/* Delete Broker Confirmation */}
-      <ConfirmDialog
-        open={!!deleteProfileId}
-        onOpenChange={(open) => !open && setDeleteProfileId(null)}
-        title="Delete Broker Profile"
-        description="Are you sure you want to delete this broker profile? Any active connection will be closed immediately."
-        confirmText="Delete"
-        variant="destructive"
-        onConfirm={handleConfirmDeleteProfile}
-      />
-
-      {/* Delete Workflow Confirmation */}
-      <ConfirmDialog
-        open={!!deleteWorkflowTarget}
-        onOpenChange={(open) => !open && setDeleteWorkflowTarget(null)}
-        title="Delete Workflow"
-        description={`Are you sure you want to delete workflow "${deleteWorkflowTarget?.name}"? All steps and connections within it will be removed.`}
-        confirmText="Delete Workflow"
-        variant="destructive"
-        onConfirm={handleConfirmDeleteWorkflow}
-      />
-
-      {/* Rename Workflow Modal */}
-      <PromptDialog
-        open={!!renameWorkflowTarget}
-        onOpenChange={(open) => !open && setRenameWorkflowTarget(null)}
-        title="Rename Workflow"
-        description="Update the name of this automation workflow."
-        label="Workflow Name"
-        defaultValue={renameWorkflowTarget?.name || ''}
-        placeholder="e.g. Device Provisioning & Command Flow"
-        confirmText="Save Name"
-        onConfirm={handleConfirmRenameWorkflow}
-      />
-
-      {/* New Workflow Modal */}
-      <PromptDialog
-        open={newWorkflowDialogOpen}
-        onOpenChange={setNewWorkflowDialogOpen}
-        title="Create New Workflow"
-        description="Enter a descriptive name for your visual automation flow."
-        label="Workflow Name"
-        defaultValue="New Automation Workflow"
-        placeholder="e.g. Device Provisioning & Command Flow"
-        confirmText="Create Workflow"
-        onConfirm={handleConfirmNewWorkflow}
-      />
+      {renderDialogs()}
     </aside>
+  </>
   );
 };

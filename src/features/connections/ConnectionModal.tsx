@@ -261,7 +261,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-zinc-950 border-zinc-800 text-zinc-100">
+      <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-zinc-950 border-zinc-800 text-zinc-100 p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-sm font-semibold flex items-center gap-2">
             <span>
@@ -281,7 +281,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
           className="space-y-4 text-xs font-sans mt-2"
         >
           {/* Section: General */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">
                 Profile Name
@@ -333,7 +333,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
 
           {/* Section: Host, Protocol & Port */}
           <div className="grid grid-cols-12 gap-3">
-            <div className="col-span-3 space-y-1.5">
+            <div className="col-span-12 sm:col-span-3 space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">
                 Protocol
               </Label>
@@ -371,7 +371,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
               </Select>
             </div>
 
-            <div className="col-span-5 space-y-1.5">
+            <div className="col-span-12 sm:col-span-5 space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">
                 Broker Hostname
               </Label>
@@ -383,7 +383,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
               )}
             </div>
 
-            <div className="col-span-2 space-y-1.5">
+            <div className="col-span-6 sm:col-span-2 space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">
                 Port
               </Label>
@@ -452,7 +452,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
               </div>
             </div>
 
-            <div className="col-span-2 space-y-1.5">
+            <div className="col-span-6 sm:col-span-2 space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">
                 Path
               </Label>
@@ -465,7 +465,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
             </div>
 
             {(protocol === "mqtt" || protocol === "mqtts") && (
-              <div className="col-span-12 flex items-center justify-between gap-3 text-[11px] text-amber-300 bg-amber-950/40 border border-amber-800/60 rounded-md p-2.5">
+              <div className="col-span-12 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[11px] text-amber-300 bg-amber-950/40 border border-amber-800/60 rounded-md p-2.5">
                 <div className="leading-relaxed">
                   <strong className="text-amber-200">Browser Notice:</strong>{" "}
                   Web browsers cannot connect to raw TCP socket (
@@ -484,7 +484,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                     setValue("port", 443);
                     setValue("path", "/mqtt");
                   }}
-                  className="h-7 text-[10px] border-cyan-500/50 hover:bg-cyan-950/50 text-cyan-300 shrink-0 shadow-sm"
+                  className="h-7 text-[10px] border-cyan-500/50 hover:bg-cyan-950/50 text-cyan-300 shrink-0 shadow-sm self-start sm:self-auto"
                 >
                   Switch to wss://
                 </Button>
@@ -493,7 +493,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
           </div>
 
           {/* Section: Authentication */}
-          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-800">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-zinc-800">
             <div className="space-y-1.5">
               <Label className="text-[11px] font-medium text-zinc-300">
                 Username (Optional)

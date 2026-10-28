@@ -36,6 +36,7 @@ import {
 } from '@/core/workflow/workflowImportExport';
 import { getRandomFlowColor, computeFlowColorMaps } from '@/core/workflow/flowColors';
 import { useWorkflowHistory } from './useWorkflowHistory';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 const nodeTypes = {
   workflowCustomNode: WorkflowCustomNode,
@@ -54,7 +55,11 @@ export const WorkflowStudio: React.FC = () => {
     addWorkflowLog,
     activeWorkflowId,
     setActiveWorkflowId,
+    workflowPaletteCollapsed,
+    toggleWorkflowPalette,
   } = useStudioStore();
+
+  const isMobile = useIsMobile();
 
   const workflows = useDataStore((state) => state.workflows);
   const addWorkflow = useDataStore((state) => state.addWorkflow);
@@ -87,24 +92,6 @@ export const WorkflowStudio: React.FC = () => {
   useEffect(() => {
     edgesRef.current = edges;
   }, [edges]);
-
-  const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(() => {
-    try {
-      return localStorage.getItem('mqtt_workflow_palette_collapsed') === 'true';
-    } catch {
-      return false;
-    }
-  });
-
-  const handleTogglePalette = () => {
-    setIsPaletteCollapsed((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem('mqtt_workflow_palette_collapsed', String(next));
-      } catch {}
-      return next;
-    });
-  };
 
   // Load workflow nodes & edges into canvas when currentWorkflow changes
   useEffect(() => {
@@ -781,8 +768,8 @@ export const WorkflowStudio: React.FC = () => {
         {/* Left: Node Palette */}
         <WorkflowNodePalette
           onAddNode={handleAddNode}
-          isCollapsed={isPaletteCollapsed}
-          onToggleCollapse={handleTogglePalette}
+          isCollapsed={workflowPaletteCollapsed}
+          onToggleCollapse={toggleWorkflowPalette}
         />
 
         {/* Center: React Flow Canvas */}
@@ -841,16 +828,32 @@ export const WorkflowStudio: React.FC = () => {
           </ReactFlow>
         </div>
 
-        {/* Right: Node Inspector */}
+        {/* Right / Mobile Drawer: Node Inspector */}
         {selectedNode && (
-          <WorkflowNodeInspector
-            selectedNode={selectedNode}
-            onUpdateNodeData={handleUpdateNodeData}
-            onDeleteNode={handleDeleteNode}
-            onDuplicateNode={handleDuplicateNode}
-            onRunFromNode={handleRunWorkflow}
-            onClose={() => setSelectedNodeId(null)}
-          />
+          <>
+            {isMobile && (
+              <div
+                className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 md:hidden animate-in fade-in duration-200"
+                onClick={() => setSelectedNodeId(null)}
+              />
+            )}
+            <div
+              className={
+                isMobile
+                  ? 'fixed inset-y-0 right-0 w-full sm:w-96 z-50 bg-zinc-950 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200'
+                  : 'w-80 shrink-0 h-full border-l border-zinc-800'
+              }
+            >
+              <WorkflowNodeInspector
+                selectedNode={selectedNode}
+                onUpdateNodeData={handleUpdateNodeData}
+                onDeleteNode={handleDeleteNode}
+                onDuplicateNode={handleDuplicateNode}
+                onRunFromNode={handleRunWorkflow}
+                onClose={() => setSelectedNodeId(null)}
+              />
+            </div>
+          </>
         )}
       </div>
 

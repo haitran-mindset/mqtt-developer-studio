@@ -17,6 +17,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useStudioStore } from '@/app/store/studioStore';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
 import { useDataStore } from '@/core/store/dataStore';
 import { Button } from '@/components/ui/button';
@@ -55,6 +56,8 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
     isPausedMessageStream,
     setIsPausedMessageStream,
   } = useStudioStore();
+
+  const isMobile = useIsMobile();
 
   const initialDraft = React.useMemo(() => loadSubscribeDraftFromSession(), []);
   const initialSavedSubs = React.useMemo(() => loadSubscribedTopicsFromSession() || [], []);
@@ -319,12 +322,12 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
       {/* Top Subscription Bar */}
       <div className="border-b border-zinc-800 bg-zinc-900/40 select-none">
         {/* Subscribe Input Row */}
-        <div className="p-3 pb-2.5 flex items-center gap-2">
+        <div className="p-2.5 sm:p-3 pb-2 flex flex-col sm:flex-row sm:items-center gap-2">
           {/* Subscription topic input */}
-          <div className="flex-1 flex items-center bg-zinc-900/90 border border-zinc-800 rounded-md px-3 py-1 focus-within:ring-1 focus-within:ring-cyan-500 focus-within:border-cyan-500/80 transition-all">
+          <div className="flex-1 flex items-center bg-zinc-900/90 border border-zinc-800 rounded-md px-3 py-1 focus-within:ring-1 focus-within:ring-cyan-500 focus-within:border-cyan-500/80 transition-all min-w-0">
             <span className="text-[11px] font-mono text-cyan-400 font-bold tracking-wider mr-2 shrink-0 select-none flex items-center gap-1.5">
               <Radio className="w-3.5 h-3.5 text-cyan-400" />
-              SUB TOPIC:
+              <span className="hidden xs:inline">SUB TOPIC:</span>
             </span>
             <input
               type="text"
@@ -357,30 +360,32 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
             </div>
           </div>
 
-          {/* QoS selector */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[11px] text-zinc-400 font-medium select-none">QoS:</span>
-            <Select value={String(subQos)} onValueChange={(val) => setSubQos(Number(val) as QoS)}>
-              <SelectTrigger className="w-[145px] h-8 text-xs font-mono">
-                <SelectValue placeholder="QoS" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">0 - At most once</SelectItem>
-                <SelectItem value="1">1 - At least once</SelectItem>
-                <SelectItem value="2">2 - Exactly once</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* QoS selector & Subscribe button in single row on mobile */}
+          <div className="flex items-center gap-2 justify-between sm:justify-start">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[11px] text-zinc-400 font-medium select-none hidden xs:inline">QoS:</span>
+              <Select value={String(subQos)} onValueChange={(val) => setSubQos(Number(val) as QoS)}>
+                <SelectTrigger className="w-[125px] sm:w-[145px] h-8 text-xs font-mono">
+                  <SelectValue placeholder="QoS" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">0 - At most once</SelectItem>
+                  <SelectItem value="1">1 - At least once</SelectItem>
+                  <SelectItem value="2">2 - Exactly once</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Subscribe Button */}
-          <Button
-            size="sm"
-            onClick={handleSubscribe}
-            className="flex items-center gap-1.5 font-semibold text-xs h-8 px-4 shadow-md shadow-cyan-500/20"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span>Subscribe</span>
-          </Button>
+            {/* Subscribe Button */}
+            <Button
+              size="sm"
+              onClick={handleSubscribe}
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 font-semibold text-xs h-8 px-4 shadow-md shadow-cyan-500/20"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Subscribe</span>
+            </Button>
+          </div>
         </div>
 
         {/* Active Topics Header & Cards Section */}
@@ -551,34 +556,34 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
       </div>
 
       {/* Filter & Stream Controls Toolbar */}
-      <div className="h-9 px-3 border-b border-zinc-800 bg-zinc-900/60 flex items-center justify-between text-xs select-none">
-        <div className="flex items-center gap-2">
+      <div className="py-2 px-3 border-b border-zinc-800 bg-zinc-900/60 flex flex-col md:flex-row md:items-center justify-between text-xs select-none gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
           {/* Topic search */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <Search className="absolute left-2 top-2 h-3 w-3 text-zinc-500" />
             <Input
               type="text"
               placeholder="Filter by topic..."
               value={topicFilter}
               onChange={(e) => setTopicFilter(e.target.value)}
-              className="h-7 pl-7 pr-2 rounded text-[11px] font-mono text-zinc-200 placeholder:text-zinc-500 w-48"
+              className="h-7 pl-7 pr-2 rounded text-[11px] font-mono text-zinc-200 placeholder:text-zinc-500 w-36 sm:w-48"
             />
           </div>
 
           {/* Payload search */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <Search className="absolute left-2 top-2 h-3 w-3 text-zinc-500" />
             <Input
               type="text"
               placeholder="Search payload..."
               value={payloadFilter}
               onChange={(e) => setPayloadFilter(e.target.value)}
-              className="h-7 pl-7 pr-2 rounded text-[11px] font-mono text-zinc-200 placeholder:text-zinc-500 w-48"
+              className="h-7 pl-7 pr-2 rounded text-[11px] font-mono text-zinc-200 placeholder:text-zinc-500 w-36 sm:w-48"
             />
           </div>
 
           {/* Direction toggle */}
-          <div className="flex items-center bg-zinc-950 p-0.5 rounded border border-zinc-800">
+          <div className="flex items-center bg-zinc-950 p-0.5 rounded border border-zinc-800 shrink-0">
             {(['all', 'in', 'out'] as const).map((dir) => (
               <button
                 key={dir}
@@ -596,7 +601,7 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
         </div>
 
         {/* Stream Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 justify-between md:justify-end shrink-0">
           {/* Pause / Resume button */}
           <Button
             size="sm"
@@ -664,51 +669,57 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
                   <div
                     key={msg.id}
                     onClick={() => setSelectedMessage(msg)}
-                    className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${
+                    className={`flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 p-2.5 sm:px-3 sm:py-2 cursor-pointer transition-colors ${
                       isSelected
                         ? 'bg-zinc-900 border-l-2 border-cyan-400 shadow-sm'
                         : 'hover:bg-zinc-900/60'
                     }`}
                   >
-                    {/* Direction Icon */}
-                    <span className="shrink-0">
-                      {msg.direction === 'in' ? (
-                        <span title="Inbound">
-                          <ArrowDownLeft className="h-3.5 w-3.5 text-cyan-400" />
-                        </span>
-                      ) : (
-                        <span title="Outbound">
-                          <ArrowUpRight className="h-3.5 w-3.5 text-emerald-400" />
-                        </span>
-                      )}
-                    </span>
-
-                    {/* Timestamp */}
-                    <span className="text-zinc-500 text-[11px] shrink-0 w-20">
-                      {format(msg.timestamp, 'HH:mm:ss.SSS')}
-                    </span>
-
-                    {/* Topic */}
-                    <span className="font-semibold text-zinc-200 text-xs shrink-0 max-w-[200px] truncate">
-                      {msg.topic}
-                    </span>
-
-                    {/* Payload Snippet */}
-                    <span className="flex-1 text-zinc-400 truncate text-[11px]">
-                      {msg.payload.replace(/\s+/g, ' ')}
-                    </span>
-
-                    {/* Badges: QoS, Retain, Size */}
-                    <div className="flex items-center gap-1.5 shrink-0 text-[10px] text-zinc-500">
-                      <span className="bg-zinc-800 px-1 rounded text-zinc-400">
-                        QoS {msg.qos}
+                    {/* Line 1 on mobile / Left group: Direction icon, Timestamp, Topic */}
+                    <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
+                      {/* Direction Icon */}
+                      <span className="shrink-0">
+                        {msg.direction === 'in' ? (
+                          <span title="Inbound">
+                            <ArrowDownLeft className="h-3.5 w-3.5 text-cyan-400" />
+                          </span>
+                        ) : (
+                          <span title="Outbound">
+                            <ArrowUpRight className="h-3.5 w-3.5 text-emerald-400" />
+                          </span>
+                        )}
                       </span>
-                      {msg.retain && (
-                        <span className="bg-amber-950 text-amber-400 px-1 rounded">
-                          Retain
+
+                      {/* Timestamp */}
+                      <span className="text-zinc-500 text-[11px] shrink-0 font-mono">
+                        {format(msg.timestamp, 'HH:mm:ss.SSS')}
+                      </span>
+
+                      {/* Topic */}
+                      <span className="font-semibold text-zinc-200 text-xs truncate max-w-[170px] sm:max-w-[200px]">
+                        {msg.topic}
+                      </span>
+                    </div>
+
+                    {/* Line 2 on mobile / Right group: Payload snippet + Badges */}
+                    <div className="flex items-center gap-2 flex-1 min-w-0 justify-between pl-5 sm:pl-0">
+                      {/* Payload Snippet */}
+                      <span className="flex-1 text-zinc-400 truncate text-[11px]">
+                        {msg.payload.replace(/\s+/g, ' ')}
+                      </span>
+
+                      {/* Badges: QoS, Retain, Size */}
+                      <div className="flex items-center gap-1.5 shrink-0 text-[10px] text-zinc-500">
+                        <span className="bg-zinc-800 px-1 rounded text-zinc-400">
+                          QoS {msg.qos}
                         </span>
-                      )}
-                      <span>{formatBytes(msg.sizeBytes)}</span>
+                        {msg.retain && (
+                          <span className="bg-amber-950 text-amber-400 px-1 rounded">
+                            Retain
+                          </span>
+                        )}
+                        <span>{formatBytes(msg.sizeBytes)}</span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -717,9 +728,15 @@ export const SubscriberView: React.FC<SubscriberViewProps> = ({ onRepublishMessa
           )}
         </div>
 
-        {/* Right: Detail Inspector */}
+        {/* Right / Mobile Master-Detail Fullscreen Overlay: Detail Inspector */}
         {selectedMessage && (
-          <div className="w-[450px] shrink-0">
+          <div
+            className={
+              isMobile
+                ? 'fixed inset-0 z-50 bg-zinc-950 flex flex-col animate-in slide-in-from-right duration-200'
+                : 'w-[450px] shrink-0'
+            }
+          >
             <MessageDetailInspector
               message={selectedMessage}
               onClose={() => setSelectedMessage(null)}

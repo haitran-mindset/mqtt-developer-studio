@@ -9,7 +9,9 @@ import {
   Search,
   Copy,
   Check,
+  X,
 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { useStudioStore, type BottomPanelTab } from '../store/studioStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,10 +36,11 @@ export const StudioBottomPanel: React.FC = () => {
 
   const [logFilter, setLogFilter] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   if (!bottomPanelOpen) {
     return (
-      <div className="h-6 border-t border-zinc-800 bg-zinc-950 px-3 flex items-center justify-between text-[11px] text-zinc-400 select-none">
+      <div className="hidden md:flex h-6 border-t border-zinc-800 bg-zinc-950 px-3 items-center justify-between text-[11px] text-zinc-400 select-none">
         <button
           onClick={toggleBottomPanel}
           className="flex items-center gap-1.5 hover:text-zinc-200 transition-colors cursor-pointer"
@@ -69,10 +72,26 @@ export const StudioBottomPanel: React.FC = () => {
   };
 
   return (
-    <div className="h-56 border-t border-zinc-800 bg-zinc-950 flex flex-col shrink-0 select-none z-20">
-      {/* Panel Tab Bar */}
-      <div className="h-8 border-b border-zinc-800 px-3 flex items-center justify-between bg-zinc-900/60">
-        <div className="flex items-center gap-1">
+    <>
+      {isMobile && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 md:hidden animate-in fade-in duration-200"
+          onClick={toggleBottomPanel}
+        />
+      )}
+      <div
+        className={
+          isMobile
+            ? 'fixed inset-x-0 bottom-14 max-h-[75vh] h-[65vh] bg-zinc-950 border-t border-zinc-800 z-40 flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-200 select-none'
+            : 'h-56 border-t border-zinc-800 bg-zinc-950 flex flex-col shrink-0 select-none z-20'
+        }
+      >
+        {isMobile && (
+          <div className="w-12 h-1 bg-zinc-700 rounded-full mx-auto my-1.5 shrink-0" />
+        )}
+        {/* Panel Tab Bar */}
+        <div className="h-8 border-b border-zinc-800 px-3 flex items-center justify-between bg-zinc-900/60 overflow-x-auto no-scrollbar gap-2 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={() => setBottomPanelTab('connection_logs')}
             className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded transition-colors font-medium cursor-pointer ${
@@ -159,9 +178,10 @@ export const StudioBottomPanel: React.FC = () => {
             size="sm"
             variant="ghost"
             onClick={toggleBottomPanel}
-            className="h-6 w-6 p-0 text-zinc-400 hover:text-zinc-200"
+            className="h-6 w-6 p-0 text-zinc-400 hover:text-zinc-200 cursor-pointer"
+            title="Close Panel"
           >
-            <ChevronDown className="h-3.5 w-3.5" />
+            {isMobile ? <X className="h-4 w-4" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </Button>
         </div>
       </div>
@@ -346,5 +366,6 @@ export const StudioBottomPanel: React.FC = () => {
         )}
       </div>
     </div>
+  </>
   );
 };

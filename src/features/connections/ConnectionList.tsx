@@ -117,9 +117,9 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-6">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header bar */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2">
             <Server className="h-4 w-4 text-cyan-400" />
@@ -130,7 +130,7 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           {profiles.length > 0 && (
             <Button
               size="sm"
@@ -151,7 +151,7 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
 
       {/* Empty State or Broker Cards Grid */}
       {profiles.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-12 border border-dashed border-zinc-800 rounded-2xl bg-zinc-900/20 text-center max-w-lg mx-auto my-12">
+        <div className="flex flex-col items-center justify-center p-8 sm:p-12 border border-dashed border-zinc-800 rounded-2xl bg-zinc-900/20 text-center max-w-lg mx-auto my-8 sm:my-12">
           <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 mb-4 shadow-inner">
             <Server className="w-7 h-7 text-cyan-400/80" />
           </div>
@@ -166,7 +166,7 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
         </div>
       ) : (
         <TooltipProvider>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {profiles.map((profile) => {
             const status = connectionStatuses[profile.id]?.status || 'disconnected';
             const isSelected = activeConnectionId === profile.id;

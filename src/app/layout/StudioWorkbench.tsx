@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StudioHeader } from './StudioHeader';
 import { StudioSidebar } from './StudioSidebar';
 import { StudioBottomPanel } from './StudioBottomPanel';
+import { StudioBottomNav } from './StudioBottomNav';
 import { ConnectionList } from '@/features/connections/ConnectionList';
 import { ConnectionModal } from '@/features/connections/ConnectionModal';
 import { PublisherView } from '@/features/publisher/PublisherView';
@@ -87,7 +88,7 @@ export const StudioWorkbench: React.FC = () => {
         />
 
         {/* Center Stage based on active tab */}
-        <main className="flex-1 flex flex-col overflow-hidden bg-zinc-950">
+        <main className="flex-1 flex flex-col overflow-hidden bg-zinc-950 pb-14 md:pb-0">
           {activeTab === 'connections' && (
             <ConnectionList
               onAddNewBroker={handleOpenNewBroker}
@@ -109,6 +110,9 @@ export const StudioWorkbench: React.FC = () => {
 
       {/* Studio Bottom Console & Diagnostics Panel */}
       <StudioBottomPanel />
+
+      {/* Mobile Bottom Navigation Bar (Visible only on < 768px) */}
+      <StudioBottomNav />
 
       {/* Broker Profile Add/Edit Dialog */}
       <ConnectionModal

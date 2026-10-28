@@ -70,7 +70,7 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
   };
 
   return (
-    <div className="w-80 border-l border-zinc-800 bg-zinc-950 flex flex-col h-full overflow-hidden select-none">
+    <div className="w-full bg-zinc-950 flex flex-col h-full overflow-hidden select-none">
       {/* Header */}
       <div className="p-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/60 shrink-0">
         <div>
