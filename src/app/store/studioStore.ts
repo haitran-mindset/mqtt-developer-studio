@@ -50,14 +50,7 @@ export const useStudioStore = create<StudioState>((set) => ({
   activeConnectionId: null,
   activeWorkflowId: loadActiveWorkflowIdFromSession(),
 
-  sidebarOpen: (() => {
-    try {
-      const stored = localStorage.getItem('mqtt_studio_sidebar_open');
-      return stored !== null ? stored === 'true' : true;
-    } catch {
-      return true;
-    }
-  })(),
+  sidebarOpen: true,
   bottomPanelOpen: true,
   bottomPanelTab: 'connection_logs',
 
@@ -76,20 +69,8 @@ export const useStudioStore = create<StudioState>((set) => ({
     saveActiveWorkflowIdToSession(id);
     set({ activeWorkflowId: id });
   },
-  setSidebarOpen: (open) => {
-    try {
-      localStorage.setItem('mqtt_studio_sidebar_open', String(open));
-    } catch {}
-    set({ sidebarOpen: open });
-  },
-  toggleSidebar: () =>
-    set((state) => {
-      const next = !state.sidebarOpen;
-      try {
-        localStorage.setItem('mqtt_studio_sidebar_open', String(next));
-      } catch {}
-      return { sidebarOpen: next };
-    }),
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
+  toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
   setBottomPanelOpen: (open) => set({ bottomPanelOpen: open }),
   toggleBottomPanel: () => set((state) => ({ bottomPanelOpen: !state.bottomPanelOpen })),
   setBottomPanelTab: (tab) => set({ bottomPanelTab: tab, bottomPanelOpen: true }),

@@ -772,26 +772,6 @@ export const WorkflowStudio: React.FC = () => {
 
         {/* Center: React Flow Canvas */}
         <div className="flex-1 h-full relative">
-          {/* Floating Quick Guide on Canvas */}
-          {currentWorkflow && (
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-zinc-900/90 border border-zinc-800 rounded-full px-4 py-1.5 shadow-xl backdrop-blur-md flex items-center gap-2.5 text-xs text-zinc-300 font-sans pointer-events-auto select-none">
-              <span className="flex h-2 w-2 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-              </span>
-              <span>
-                <strong className="text-cyan-400">Connect:</strong> Drag bottom port to top port
-              </span>
-              <span className="text-zinc-600">•</span>
-              <span>
-                <strong className="text-rose-400">Remove wire:</strong> Click <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-zinc-800 border border-rose-500/50 text-rose-400 font-bold text-[10px] mx-0.5">✕</span> on the wire, or select it and press <kbd className="bg-zinc-800 border border-zinc-700 px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-300">Delete</kbd>
-              </span>
-              <span className="text-zinc-600">•</span>
-              <span>
-                <strong className="text-amber-400">Undo:</strong> <kbd className="bg-zinc-800 border border-zinc-700 px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-300">Ctrl+Z</kbd>
-              </span>
-            </div>
-          )}
 
           {!currentWorkflow && (
             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-zinc-950/85 backdrop-blur-xs text-center p-6 select-none pointer-events-auto">
