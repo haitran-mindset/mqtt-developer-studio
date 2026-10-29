@@ -14,10 +14,20 @@ import {
   Upload,
   Undo2,
   Redo2,
+  Layers,
+  CheckSquare,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import {
   Select,
   SelectContent,
@@ -43,6 +53,8 @@ interface WorkflowRunControlsProps {
   onDeleteWorkflow?: () => void;
   onOpenTemplates?: () => void;
   onExportWorkflow?: () => void;
+  onExportAllWorkflows?: () => void;
+  onOpenExportModal?: () => void;
   onImportWorkflow?: () => void;
   workflows: WorkflowDefinition[];
   currentWorkflow: WorkflowDefinition | null;
@@ -66,6 +78,8 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
   onDeleteWorkflow,
   onOpenTemplates,
   onExportWorkflow,
+  onExportAllWorkflows,
+  onOpenExportModal,
   onImportWorkflow,
   workflows,
   currentWorkflow,
@@ -242,17 +256,69 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
         {/* Right: Export/Import, Reset, Run/Abort */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 shrink-0 justify-between md:justify-end">
           {onExportWorkflow && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onExportWorkflow}
-              disabled={!currentWorkflow || isRunning}
-              className="h-7 text-xs flex items-center gap-1 font-medium text-sky-400 hover:text-sky-300 hover:bg-sky-950/30 border-zinc-800"
-              title="Export Current Workflow to .json file"
-            >
-              <Download className="h-3.5 w-3.5" />
-              <span>Export</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={isRunning || (!currentWorkflow && workflows.length === 0)}
+                  className="h-7 text-xs flex items-center gap-1 font-medium text-sky-400 hover:text-sky-300 hover:bg-sky-950/30 border-zinc-800"
+                  title="Export Workflows (Current, All, or Selected)"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span>Export</span>
+                  <ChevronDown className="h-3 w-3 opacity-60 ml-0.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-zinc-950 border-zinc-800 text-zinc-100 p-1">
+                <DropdownMenuItem
+                  disabled={!currentWorkflow || isRunning}
+                  onClick={onExportWorkflow}
+                  className="text-xs flex items-center gap-2 cursor-pointer focus:bg-zinc-800 focus:text-cyan-400"
+                >
+                  <Download className="h-3.5 w-3.5 text-sky-400 shrink-0" />
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="font-medium text-zinc-200">Export Current</span>
+                    <span className="text-[10px] text-zinc-500 truncate">
+                      {currentWorkflow?.name || 'No active workflow'}
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+
+                {onExportAllWorkflows && (
+                  <DropdownMenuItem
+                    disabled={workflows.length === 0 || isRunning}
+                    onClick={onExportAllWorkflows}
+                    className="text-xs flex items-center gap-2 cursor-pointer focus:bg-zinc-800 focus:text-cyan-400"
+                  >
+                    <Layers className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="font-medium text-zinc-200">
+                        Export All ({workflows.length})
+                      </span>
+                      <span className="text-[10px] text-zinc-500">Single bundle file</span>
+                    </div>
+                  </DropdownMenuItem>
+                )}
+
+                {onOpenExportModal && (
+                  <>
+                    <DropdownMenuSeparator className="bg-zinc-800 my-1" />
+                    <DropdownMenuItem
+                      disabled={workflows.length === 0 || isRunning}
+                      onClick={onOpenExportModal}
+                      className="text-xs flex items-center gap-2 cursor-pointer focus:bg-zinc-800 focus:text-cyan-400"
+                    >
+                      <CheckSquare className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className="font-medium text-zinc-200">Export Selected...</span>
+                        <span className="text-[10px] text-zinc-500">Choose workflows to bundle</span>
+                      </div>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
 
           {onImportWorkflow && (
@@ -262,7 +328,7 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
               onClick={onImportWorkflow}
               disabled={isRunning}
               className="h-7 text-xs flex items-center gap-1 font-medium text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/30 border-zinc-800"
-              title="Import Workflow from .json file"
+              title="Import Workflows (.json single, multiple files, or bundle)"
             >
               <Upload className="h-3.5 w-3.5" />
               <span>Import</span>

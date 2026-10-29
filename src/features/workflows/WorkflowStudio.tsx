@@ -30,9 +30,12 @@ import { Button } from '@/components/ui/button';
 import { GitBranch, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { WorkflowTemplatesModal } from './templates/WorkflowTemplatesModal';
+import { ExportWorkflowsModal } from './ExportWorkflowsModal';
 import {
   exportWorkflowToJson,
+  exportWorkflowsBundleToJson,
   importWorkflowFromJson,
+  importMultipleWorkflowsFromFiles,
 } from '@/core/workflow/workflowImportExport';
 import { getRandomFlowColor, computeFlowColorMaps } from '@/core/workflow/flowColors';
 import { useWorkflowHistory } from './useWorkflowHistory';
@@ -76,6 +79,7 @@ export const WorkflowStudio: React.FC = () => {
   const [renameWorkflowDialogOpen, setRenameWorkflowDialogOpen] = useState(false);
   const [deleteWorkflowDialogOpen, setDeleteWorkflowDialogOpen] = useState(false);
   const [templatesModalOpen, setTemplatesModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isRunning, setIsRunning] = useState(false);
@@ -527,7 +531,7 @@ export const WorkflowStudio: React.FC = () => {
     toast.info(`Deleted workflow "${nameToDelete}"`);
   };
 
-  // Export Workflow to JSON
+  // Export Current Workflow to JSON
   const handleExportWorkflow = () => {
     if (!currentWorkflow) return;
     const fullWorkflow: WorkflowDefinition = {
@@ -539,19 +543,72 @@ export const WorkflowStudio: React.FC = () => {
     toast.success(`Exported "${currentWorkflow.name}" to JSON`);
   };
 
-  // Import Workflow from JSON
+  // Export All Workflows to Bundle JSON
+  const handleExportAllWorkflows = () => {
+    if (workflows.length === 0) return;
+    const allWorkflows: WorkflowDefinition[] = workflows.map((wf) => {
+      if (currentWorkflow && wf.id === currentWorkflow.id) {
+        return {
+          ...wf,
+          nodes,
+          edges,
+        };
+      }
+      return wf;
+    });
+    exportWorkflowsBundleToJson(allWorkflows, 'mqtt-all-workflows');
+    toast.success(`Exported all ${workflows.length} workflows to bundle JSON`);
+  };
+
+  // Export Selected Workflows from Modal
+  const handleExportSelectedWorkflows = (
+    selectedWorkflows: WorkflowDefinition[],
+    bundleName: string
+  ) => {
+    const preparedWorkflows = selectedWorkflows.map((wf) => {
+      if (currentWorkflow && wf.id === currentWorkflow.id) {
+        return {
+          ...wf,
+          nodes,
+          edges,
+        };
+      }
+      return wf;
+    });
+    exportWorkflowsBundleToJson(preparedWorkflows, bundleName);
+    toast.success(`Exported ${selectedWorkflows.length} workflows to "${bundleName}.json"`);
+  };
+
+  // Import Workflows from JSON (Supports single files, multiple files, and bundles)
   const handleImportWorkflowClick = () => {
     fileInputRef.current?.click();
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
     try {
-      const imported = await importWorkflowFromJson(file);
-      addWorkflow(imported);
-      setActiveWorkflowId(imported.id);
-      toast.success(`Imported "${imported.name}" with ${imported.nodes.length} nodes!`);
+      const result = await importMultipleWorkflowsFromFiles(files);
+
+      if (result.imported.length > 0) {
+        result.imported.forEach((importedWf) => {
+          addWorkflow(importedWf);
+        });
+        setActiveWorkflowId(result.imported[0].id);
+
+        if (result.imported.length === 1) {
+          toast.success(
+            `Imported "${result.imported[0].name}" with ${result.imported[0].nodes.length} nodes!`
+          );
+        } else {
+          toast.success(`Imported ${result.imported.length} workflows successfully!`);
+        }
+      }
+
+      if (result.errors.length > 0) {
+        const errorList = result.errors.map((err) => `${err.fileName}: ${err.error}`).join('; ');
+        toast.error(`Some files could not be imported: ${errorList}`);
+      }
     } catch (err: any) {
       toast.error(`Import failed: ${err.message}`);
     } finally {
@@ -756,6 +813,8 @@ export const WorkflowStudio: React.FC = () => {
         onDeleteWorkflow={handleDeleteWorkflow}
         onOpenTemplates={() => setTemplatesModalOpen(true)}
         onExportWorkflow={handleExportWorkflow}
+        onExportAllWorkflows={handleExportAllWorkflows}
+        onOpenExportModal={() => setExportModalOpen(true)}
         onImportWorkflow={handleImportWorkflowClick}
         workflows={workflows}
         currentWorkflow={currentWorkflow}
@@ -894,10 +953,11 @@ export const WorkflowStudio: React.FC = () => {
         onConfirm={handleConfirmDeleteWorkflow}
       />
 
-      {/* Hidden File Input for Workflow Import */}
+      {/* Hidden File Input for Workflow Import (Supports Multiple Files & Bundles) */}
       <input
         type="file"
         ref={fileInputRef}
+        multiple
         accept=".json,application/json"
         onChange={handleFileChange}
         className="hidden"
@@ -908,6 +968,15 @@ export const WorkflowStudio: React.FC = () => {
         open={templatesModalOpen}
         onOpenChange={setTemplatesModalOpen}
         onSelectTemplate={handleSelectTemplate}
+      />
+
+      {/* Export Workflows Bundle Modal */}
+      <ExportWorkflowsModal
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        workflows={workflows}
+        defaultSelectedId={currentWorkflow?.id}
+        onExport={handleExportSelectedWorkflows}
       />
     </div>
   );
