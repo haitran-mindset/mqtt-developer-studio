@@ -60,6 +60,8 @@ interface DataState {
   addWorkflow: (workflow: WorkflowDefinition) => void;
   updateWorkflow: (workflow: WorkflowDefinition) => void;
   deleteWorkflow: (id: string) => void;
+  reorderWorkflows: (fromIndex: number, toIndex: number) => void;
+  moveWorkflow: (id: string, direction: 'up' | 'down') => void;
   addWorkflowRun: (run: WorkflowRunRecord) => void;
 
   // Reset
@@ -163,6 +165,38 @@ export const useDataStore = create<DataState>((set) => ({
   deleteWorkflow: (id) =>
     set((state) => {
       const updated = state.workflows.filter((w) => w.id !== id);
+      saveWorkflowsToSession(updated);
+      return { workflows: updated };
+    }),
+
+  reorderWorkflows: (fromIndex, toIndex) =>
+    set((state) => {
+      if (
+        fromIndex < 0 ||
+        fromIndex >= state.workflows.length ||
+        toIndex < 0 ||
+        toIndex >= state.workflows.length ||
+        fromIndex === toIndex
+      ) {
+        return state;
+      }
+      const updated = [...state.workflows];
+      const [moved] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, moved);
+      saveWorkflowsToSession(updated);
+      return { workflows: updated };
+    }),
+
+  moveWorkflow: (id, direction) =>
+    set((state) => {
+      const index = state.workflows.findIndex((w) => w.id === id);
+      if (index === -1) return state;
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= state.workflows.length) return state;
+
+      const updated = [...state.workflows];
+      const [moved] = updated.splice(index, 1);
+      updated.splice(targetIndex, 0, moved);
       saveWorkflowsToSession(updated);
       return { workflows: updated };
     }),

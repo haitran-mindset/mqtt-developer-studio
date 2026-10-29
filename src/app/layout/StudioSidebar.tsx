@@ -16,6 +16,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   X,
+  GripVertical,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useStudioStore } from '../store/studioStore';
@@ -63,6 +64,39 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
   const addWorkflow = useDataStore((state) => state.addWorkflow);
   const updateWorkflow = useDataStore((state) => state.updateWorkflow);
   const deleteWorkflow = useDataStore((state) => state.deleteWorkflow);
+  const reorderWorkflows = useDataStore((state) => state.reorderWorkflows);
+
+  const [draggedWorkflowIndex, setDraggedWorkflowIndex] = useState<number | null>(null);
+  const [dragOverWorkflowIndex, setDragOverWorkflowIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedWorkflowIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverWorkflowIndex !== index) {
+      setDragOverWorkflowIndex(index);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedWorkflowIndex !== null && draggedWorkflowIndex !== targetIndex) {
+      reorderWorkflows(draggedWorkflowIndex, targetIndex);
+      toast.success('Workflow order updated');
+    }
+    setDraggedWorkflowIndex(null);
+    setDragOverWorkflowIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedWorkflowIndex(null);
+    setDragOverWorkflowIndex(null);
+  };
 
   const [deleteProfileId, setDeleteProfileId] = useState<string | null>(null);
   const [deleteWorkflowTarget, setDeleteWorkflowTarget] = useState<WorkflowDefinition | null>(null);
@@ -527,71 +561,98 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
                 No workflows created yet. Click <span className="text-cyan-400 font-medium">+ New</span> in the studio toolbar to create one.
               </div>
             ) : (
-              workflows.map((wf) => {
+              workflows.map((wf, index) => {
                 const isSelected = activeWorkflowId === wf.id;
-              return (
-                <div
-                  key={wf.id}
-                  onClick={() => {
-                    setActiveWorkflowId(wf.id);
-                    if (onSelectWorkflow) onSelectWorkflow(wf);
-                    if (isMobile) setSidebarOpen(false);
-                  }}
-                  className={`group p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
-                    isSelected
-                      ? 'bg-zinc-900/90 border-cyan-500/50 shadow-sm shadow-cyan-950/20'
-                      : 'bg-zinc-900/40 border-zinc-800/80 hover:bg-zinc-900/70 hover:border-zinc-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-zinc-100 truncate pr-1 flex-1">{wf.name}</span>
-                    <div className="flex items-center gap-0.5 shrink-0">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setRenameWorkflowTarget(wf);
-                        }}
-                        className="p-1 rounded text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800 transition-colors"
-                        title="Rename Workflow"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDuplicateWorkflow(wf);
-                        }}
-                        className="p-1 rounded text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800 transition-colors"
-                        title="Duplicate Workflow"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteWorkflowTarget(wf);
-                        }}
-                        className="p-1 rounded text-zinc-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
-                        title="Delete Workflow"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
+                const isDragging = draggedWorkflowIndex === index;
+                const isDragOver = dragOverWorkflowIndex === index && draggedWorkflowIndex !== index;
+
+                return (
+                  <div
+                    key={wf.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDrop={(e) => handleDrop(e, index)}
+                    onDragEnd={handleDragEnd}
+                    onClick={() => {
+                      setActiveWorkflowId(wf.id);
+                      if (onSelectWorkflow) onSelectWorkflow(wf);
+                      if (isMobile) setSidebarOpen(false);
+                    }}
+                    className={`group p-2.5 rounded-lg border text-xs cursor-pointer transition-all relative ${
+                      isDragging ? 'opacity-40 scale-[0.98]' : ''
+                    } ${
+                      isDragOver
+                        ? 'border-cyan-400 bg-cyan-950/30 ring-1 ring-cyan-400/50'
+                        : isSelected
+                        ? 'bg-zinc-900/90 border-cyan-500/50 shadow-sm shadow-cyan-950/20'
+                        : 'bg-zinc-900/40 border-zinc-800/80 hover:bg-zinc-900/70 hover:border-zinc-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1 gap-1">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        {/* Drag Grip Handle */}
+                        <div
+                          className="cursor-grab active:cursor-grabbing text-zinc-600 hover:text-cyan-400 p-0.5 rounded shrink-0 transition-colors"
+                          title="Drag to reorder"
+                        >
+                          <GripVertical className="h-3.5 w-3.5" />
+                        </div>
+                        <span className="font-semibold text-zinc-100 truncate pr-1 flex-1">{wf.name}</span>
+                      </div>
+
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        {/* Rename */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRenameWorkflowTarget(wf);
+                          }}
+                          className="p-1 rounded text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800 transition-colors cursor-pointer"
+                          title="Rename Workflow"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+
+                        {/* Duplicate */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDuplicateWorkflow(wf);
+                          }}
+                          className="p-1 rounded text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800 transition-colors cursor-pointer"
+                          title="Duplicate Workflow"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
+
+                        {/* Delete */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteWorkflowTarget(wf);
+                          }}
+                          className="p-1 rounded text-zinc-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                          title="Delete Workflow"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 line-clamp-2 mb-1.5 pl-5">
+                      {wf.description}
+                    </p>
+                    <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono pl-5">
+                      <span>{wf.nodes?.length || 0} Steps</span>
+                      <span className="flex items-center gap-1 text-cyan-400">
+                        <Sparkles className="h-2.5 w-2.5" />
+                        Ready
+                      </span>
                     </div>
                   </div>
-                  <p className="text-[11px] text-zinc-400 line-clamp-2 mb-1.5">
-                    {wf.description}
-                  </p>
-                  <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono">
-                    <span>{wf.nodes?.length || 0} Steps</span>
-                    <span className="flex items-center gap-1 text-cyan-400">
-                      <Sparkles className="h-2.5 w-2.5" />
-                      Ready
-                    </span>
-                  </div>
-                </div>
-              );
-            })
-          )}
+                );
+              })
+            )}
           </div>
         )}
 
