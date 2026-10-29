@@ -88,7 +88,10 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
                   if (selected) onSelectWorkflow(selected);
                 }}
               >
-                <SelectTrigger className="h-7 w-[160px] sm:min-w-[180px] sm:max-w-[260px] text-xs font-sans">
+                <SelectTrigger
+                  title={currentWorkflow?.name || 'Select workflow...'}
+                  className="h-7 w-[160px] sm:w-[200px] md:w-[240px] text-xs font-sans"
+                >
                   <SelectValue placeholder="Select workflow..." />
                 </SelectTrigger>
                 <SelectContent>

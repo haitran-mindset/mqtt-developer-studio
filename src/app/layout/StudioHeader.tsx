@@ -146,7 +146,10 @@ export const StudioHeader: React.FC = () => {
                 value={activeConnectionId || activeProfile?.id || ''}
                 onValueChange={(val) => setActiveConnectionId(val)}
               >
-                <SelectTrigger className="h-7 w-[105px] sm:w-[130px] lg:w-[160px] xl:w-[200px] text-xs font-sans">
+                <SelectTrigger
+                  title={activeProfile?.name || 'Select broker...'}
+                  className="h-7 w-[105px] sm:w-[130px] lg:w-[160px] xl:w-[200px] text-xs font-sans"
+                >
                   <SelectValue placeholder="Select broker..." />
                 </SelectTrigger>
                 <SelectContent>
