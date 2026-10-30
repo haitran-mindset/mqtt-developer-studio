@@ -19,6 +19,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Layers,
+  Zap,
+  Code2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { WorkflowStepType } from '@/core/workflow/types';
@@ -47,6 +49,12 @@ const PALETTE_GROUPS: { groupName: string; items: PaletteItem[] }[] = [
         icon: <Flag className="h-3.5 w-3.5 text-fuchsia-400" />,
         desc: 'Named flow start with random color & themed border',
       },
+      {
+        type: 'mqtt_trigger',
+        label: 'MQTT Event Trigger',
+        icon: <Zap className="h-3.5 w-3.5 text-purple-400" />,
+        desc: 'Auto-run workflow on incoming message',
+      },
     ],
   },
   {
@@ -74,6 +82,7 @@ const PALETTE_GROUPS: { groupName: string; items: PaletteItem[] }[] = [
       { type: 'extract_variable', label: 'Extract Variable', icon: <FileSearch className="h-3.5 w-3.5 text-teal-300" />, desc: 'Extract field via JSONPath' },
       { type: 'validate_payload', label: 'Validate Payload', icon: <CheckCircle2 className="h-3.5 w-3.5 text-purple-400" />, desc: 'Assert payload values' },
       { type: 'validate_schema', label: 'JSON Schema Validator', icon: <FileCheck className="h-3.5 w-3.5 text-blue-400" />, desc: 'Validate payload with JSON Schema' },
+      { type: 'run_script', label: 'Custom Script (JS)', icon: <Code2 className="h-3.5 w-3.5 text-amber-400" />, desc: 'Run async JS to transform data or compute' },
     ],
   },
   {

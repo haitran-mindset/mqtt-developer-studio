@@ -1,14 +1,17 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { ConnectionStatus, ConnectionEventLog } from '@/core/mqtt/types';
-import type { WorkflowStepRunLog } from '@/core/db/types';
+import type { WorkflowStepRunLog, WorkflowRunRecord } from '@/core/db/types';
 import {
   loadActiveWorkflowIdFromSession,
   saveActiveWorkflowIdToSession,
 } from '@/core/storage/sessionStorageManager';
 
-export type StudioTab = 'connections' | 'publisher' | 'subscriber' | 'workflows';
-export type BottomPanelTab = 'connection_logs' | 'workflow_console' | 'diagnostics';
+export type StudioTab = 'connections' | 'publisher' | 'subscriber' | 'workflows' | 'dashboard';
+export type BottomPanelTab =
+  | 'connection_logs'
+  | 'workflow_console'
+  | 'test_results'
+  | 'diagnostics';
 
 interface StudioState {
   activeTab: StudioTab;
@@ -28,6 +31,7 @@ interface StudioState {
 
   logs: ConnectionEventLog[];
   workflowLogs: WorkflowStepRunLog[];
+  lastWorkflowRun: WorkflowRunRecord | null;
 
   setActiveTab: (tab: StudioTab) => void;
   setActiveConnectionId: (id: string | null) => void;
@@ -47,14 +51,13 @@ interface StudioState {
   clearLogs: () => void;
   addWorkflowLog: (log: WorkflowStepRunLog) => void;
   clearWorkflowLogs: () => void;
+  setLastWorkflowRun: (run: WorkflowRunRecord | null) => void;
 }
 
-export const useStudioStore = create<StudioState>()(
-  persist(
-    (set) => ({
-      activeTab: 'connections',
-      activeConnectionId: null,
-      activeWorkflowId: loadActiveWorkflowIdFromSession(),
+export const useStudioStore = create<StudioState>((set) => ({
+  activeTab: 'connections',
+  activeConnectionId: null,
+  activeWorkflowId: loadActiveWorkflowIdFromSession(),
 
       sidebarOpen: true,
       bottomPanelOpen: true,
@@ -69,6 +72,7 @@ export const useStudioStore = create<StudioState>()(
 
       logs: [],
       workflowLogs: [],
+      lastWorkflowRun: null,
 
       setActiveTab: (tab) => set({ activeTab: tab }),
       setActiveConnectionId: (id) => set({ activeConnectionId: id }),
@@ -104,15 +108,6 @@ export const useStudioStore = create<StudioState>()(
           workflowLogs: [log, ...state.workflowLogs].slice(0, 500),
         })),
       clearWorkflowLogs: () => set({ workflowLogs: [] }),
-    }),
-    {
-      name: 'mqtt_studio_layout_store',
-      partialize: (state) => ({
-        sidebarOpen: state.sidebarOpen,
-        bottomPanelOpen: state.bottomPanelOpen,
-        bottomPanelTab: state.bottomPanelTab,
-        workflowPaletteCollapsed: state.workflowPaletteCollapsed,
-      }),
-    }
-  )
-);
+      setLastWorkflowRun: (run) => set({ lastWorkflowRun: run }),
+}));
+

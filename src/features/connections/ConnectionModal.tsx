@@ -26,8 +26,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { RefreshCw, HelpCircle, ChevronDown } from "lucide-react";
+import { RefreshCw, HelpCircle, ChevronDown, Info, Laptop } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isTauriApp } from "@/core/mqtt/platform";
 import type {
   ConnectionProfile,
   Protocol,
@@ -465,30 +466,40 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
             </div>
 
             {(protocol === "mqtt" || protocol === "mqtts") && (
-              <div className="col-span-12 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[11px] text-amber-300 bg-amber-950/40 border border-amber-800/60 rounded-md p-2.5">
-                <div className="leading-relaxed">
-                  <strong className="text-amber-200">Browser Notice:</strong>{" "}
-                  Web browsers cannot connect to raw TCP socket (
-                  <span className="font-mono">{protocol}://</span>). For secure
-                  encrypted connections in the browser, please use{" "}
-                  <strong className="text-cyan-400 font-mono">wss://</strong>{" "}
-                  (usually port 443 or 8084, path /mqtt).
+              isTauriApp() ? (
+                <div className="col-span-12 flex items-center gap-2.5 text-[11px] text-emerald-300 bg-emerald-950/30 border border-emerald-800/60 rounded-md p-2.5">
+                  <Laptop className="h-4 w-4 shrink-0 text-emerald-400" />
+                  <span className="leading-relaxed">
+                    <strong className="text-emerald-200">Native Desktop TCP Active:</strong> Connecting directly via native OS raw TCP socket (
+                    <span className="font-mono">{protocol}://</span>) with Rust rumqttc engine.
+                  </span>
                 </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setValue("protocol", "wss");
-                    setValue("ssl", true);
-                    setValue("port", 443);
-                    setValue("path", "/mqtt");
-                  }}
-                  className="h-7 text-[10px] border-cyan-500/50 hover:bg-cyan-950/50 text-cyan-300 shrink-0 shadow-sm self-start sm:self-auto"
-                >
-                  Switch to wss://
-                </Button>
-              </div>
+              ) : (
+                <div className="col-span-12 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[11px] text-amber-300 bg-amber-950/40 border border-amber-800/60 rounded-md p-2.5">
+                  <div className="leading-relaxed">
+                    <strong className="text-amber-200">Browser Notice:</strong>{" "}
+                    Web browsers cannot connect to raw TCP socket (
+                    <span className="font-mono">{protocol}://</span>). For secure
+                    encrypted connections in the browser, please use{" "}
+                    <strong className="text-cyan-400 font-mono">wss://</strong>{" "}
+                    (usually port 443 or 8084, path /mqtt), or run the <strong>Desktop App</strong>.
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setValue("protocol", "wss");
+                      setValue("ssl", true);
+                      setValue("port", 443);
+                      setValue("path", "/mqtt");
+                    }}
+                    className="h-7 text-[10px] border-cyan-500/50 hover:bg-cyan-950/50 text-cyan-300 shrink-0 shadow-sm self-start sm:self-auto"
+                  >
+                    Switch to wss://
+                  </Button>
+                </div>
+              )
             )}
           </div>
 

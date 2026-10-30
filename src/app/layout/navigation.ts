@@ -1,5 +1,5 @@
 import React from 'react';
-import { Server, Send, Radio, GitBranch } from 'lucide-react';
+import { Server, Send, Radio, GitBranch, LayoutDashboard } from 'lucide-react';
 import type { StudioTab } from '../store/studioStore';
 
 export interface StudioNavItem {
@@ -16,4 +16,6 @@ export const STUDIO_NAV_ITEMS: StudioNavItem[] = [
   { id: 'publisher', label: 'Publish', icon: Send },
   { id: 'subscriber', label: 'Subscribe', icon: Radio },
   { id: 'workflows', label: 'Workflows', icon: GitBranch },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
 ];
+

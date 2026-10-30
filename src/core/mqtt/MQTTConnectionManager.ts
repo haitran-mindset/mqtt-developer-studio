@@ -1,15 +1,20 @@
 import { MQTTClientAdapter, type StatusChangeCallback, type MessageCallback, type LogCallback } from './MQTTClientAdapter';
+import { TauriTCPAdapter } from './TauriTCPAdapter';
+import { isTauriApp } from './platform';
 import type { ConnectionProfile, StoredMessage, QoS } from '../db/types';
 import type { ConnectionStatus, MQTTMessageEvent, PublishOptions, ConnectionEventLog } from './types';
 import { useDataStore } from '../store/dataStore';
+import { v4 as uuidv4 } from 'uuid';
+
+export type AnyMQTTAdapter = MQTTClientAdapter | TauriTCPAdapter;
 
 export class MQTTConnectionManager {
-  private connections: Map<string, MQTTClientAdapter> = new Map();
+  private connections: Map<string, AnyMQTTAdapter> = new Map();
   private globalMessageListeners: Set<MessageCallback> = new Set();
   private globalStatusListeners: Set<(connectionId: string, status: ConnectionStatus, error?: string) => void> = new Set();
   private globalLogListeners: Set<LogCallback> = new Set();
 
-  getConnection(connectionId: string): MQTTClientAdapter | undefined {
+  getConnection(connectionId: string): AnyMQTTAdapter | undefined {
     const adapter = this.connections.get(connectionId);
     if (adapter) return adapter;
 
@@ -18,7 +23,7 @@ export class MQTTConnectionManager {
     return connected;
   }
 
-  getAllConnections(): Map<string, MQTTClientAdapter> {
+  getAllConnections(): Map<string, AnyMQTTAdapter> {
     return new Map(this.connections);
   }
 
@@ -37,11 +42,15 @@ export class MQTTConnectionManager {
     return () => this.globalLogListeners.delete(cb);
   }
 
-  async connect(profile: ConnectionProfile): Promise<MQTTClientAdapter> {
+  async connect(profile: ConnectionProfile): Promise<AnyMQTTAdapter> {
     let adapter = this.connections.get(profile.id);
 
     if (!adapter) {
-      adapter = new MQTTClientAdapter(profile);
+      if ((profile.protocol === 'mqtt' || profile.protocol === 'mqtts') && isTauriApp()) {
+        adapter = new TauriTCPAdapter(profile);
+      } else {
+        adapter = new MQTTClientAdapter(profile);
+      }
       this.connections.set(profile.id, adapter);
 
       // Wire adapter events to global manager listeners
@@ -58,18 +67,22 @@ export class MQTTConnectionManager {
         this.globalMessageListeners.forEach((cb) => cb(msg));
 
         // Save incoming message to in-memory store
+        const payloadBytes = msg.rawPayload
+          ? msg.rawPayload.byteLength
+          : new TextEncoder().encode(msg.payload).byteLength;
+
         const stored: StoredMessage = {
-          id: msg.id,
+          id: msg.id || uuidv4(),
           connectionId: msg.connectionId,
           topic: msg.topic,
           payload: msg.payload,
           format: this.detectFormat(msg.payload),
           qos: msg.qos,
           retain: msg.retain,
-          dup: msg.dup,
+          dup: msg.dup ?? false,
           timestamp: msg.timestamp,
           direction: 'in',
-          sizeBytes: msg.rawPayload.byteLength,
+          sizeBytes: payloadBytes,
           userProperties: msg.properties?.userProperties,
           responseTopic: msg.properties?.responseTopic,
           correlationData: msg.properties?.correlationData,

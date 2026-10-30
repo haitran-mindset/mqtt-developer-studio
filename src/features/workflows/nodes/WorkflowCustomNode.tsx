@@ -21,6 +21,8 @@ import {
   Flag,
   RotateCw,
   Play,
+  Zap,
+  Code2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { WorkflowStepType } from '@/core/workflow/types';
@@ -28,6 +30,7 @@ import { getRandomFlowColor } from '@/core/workflow/flowColors';
 
 const STEP_ICONS: Record<WorkflowStepType, React.ReactNode> = {
   start_label: <Flag className="h-3.5 w-3.5 text-fuchsia-400" />,
+  mqtt_trigger: <Zap className="h-3.5 w-3.5 text-purple-400" />,
   publish: <Send className="h-3.5 w-3.5 text-cyan-400" />,
   subscribe: <Inbox className="h-3.5 w-3.5 text-emerald-400" />,
   unsubscribe: <Inbox className="h-3.5 w-3.5 text-zinc-400" />,
@@ -35,6 +38,7 @@ const STEP_ICONS: Record<WorkflowStepType, React.ReactNode> = {
   wait_for_message: <Radio className="h-3.5 w-3.5 text-yellow-400" />,
   validate_payload: <CheckCircle2 className="h-3.5 w-3.5 text-purple-400" />,
   validate_schema: <FileCheck className="h-3.5 w-3.5 text-blue-400" />,
+  run_script: <Code2 className="h-3.5 w-3.5 text-amber-400" />,
   set_variable: <Variable className="h-3.5 w-3.5 text-teal-400" />,
   extract_variable: <FileSearch className="h-3.5 w-3.5 text-teal-300" />,
   condition: <GitBranch className="h-3.5 w-3.5 text-orange-400" />,
@@ -304,23 +308,27 @@ export const WorkflowCustomNode = memo(({ id, data, selected }: NodeProps) => {
   else if (stepType === 'condition') summary = config.expression || 'true';
   else if (stepType === 'loop') summary = `Repeat ${config.count || 1} times`;
   else if (stepType === 'log') summary = config.message || 'Log message';
+  else if (stepType === 'mqtt_trigger') summary = config.topic ? `Trigger: ${config.topic}` : 'Event: MQTT Trigger';
+  else if (stepType === 'run_script') summary = config.timeoutMs ? `JS Script (${config.timeoutMs}ms)` : 'Custom JS Script';
 
   return (
     <div
       className={`w-64 rounded-xl border ${statusBorder} ${statusBg} p-3 text-xs shadow-xl transition-all font-sans relative backdrop-blur-md`}
       style={customNodeStyle}
     >
-      {/* Top Input Handle (Target / Incoming Connection) */}
-      <Handle
-        type="target"
-        position={Position.Top}
-        className="!w-3.5 !h-3.5 !border-2 !border-zinc-950 cursor-crosshair hover:!scale-150 transition-transform !top-[-7px]"
-        style={{
-          backgroundColor: flowColor || '#22d3ee',
-          boxShadow: `0 0 10px ${flowColor || 'rgba(34,211,238,0.9)'}`,
-        }}
-        title="Input (Receive connection from previous step)"
-      />
+      {/* Top Input Handle (Target / Incoming Connection) - Not shown for mqtt_trigger */}
+      {stepType !== 'mqtt_trigger' && (
+        <Handle
+          type="target"
+          position={Position.Top}
+          className="!w-3.5 !h-3.5 !border-2 !border-zinc-950 cursor-crosshair hover:!scale-150 transition-transform !top-[-7px]"
+          style={{
+            backgroundColor: flowColor || '#22d3ee',
+            boxShadow: `0 0 10px ${flowColor || 'rgba(34,211,238,0.9)'}`,
+          }}
+          title="Input (Receive connection from previous step)"
+        />
+      )}
 
       {/* Row 1: Node Header (Icon, Label, Actions) */}
       <div className="flex items-center justify-between mb-2">

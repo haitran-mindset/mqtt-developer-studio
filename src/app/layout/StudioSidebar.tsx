@@ -17,10 +17,13 @@ import {
   PanelLeftOpen,
   X,
   GripVertical,
+  LayoutDashboard,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useStudioStore } from '../store/studioStore';
 import { useDataStore } from '@/core/store/dataStore';
+import { useDashboardStore } from '@/core/store/dashboardStore';
+import { DashboardSidebar } from '@/features/dashboard/DashboardSidebar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
@@ -59,6 +62,8 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
   const profiles = useDataStore((state) => state.connectionProfiles);
   const publishPresets = useDataStore((state) => state.publishPresets);
   const workflows = useDataStore((state) => state.workflows);
+  const dashboardWidgets = useDashboardStore((state) => state.widgets);
+  const setDashboardAddModalOpen = useDashboardStore((state) => state.setAddModalOpen);
   const deleteConnectionProfile = useDataStore((state) => state.deleteConnectionProfile);
   const addConnectionProfile = useDataStore((state) => state.addConnectionProfile);
   const addWorkflow = useDataStore((state) => state.addWorkflow);
@@ -303,6 +308,21 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
             </button>
           )}
 
+          {activeTab === 'dashboard' && (
+            <button
+              onClick={toggleSidebar}
+              className="p-2 rounded-lg text-cyan-400 hover:bg-zinc-800/80 transition-colors relative"
+              title={`Dashboard Widgets (${dashboardWidgets.length}) - Click to expand`}
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              {dashboardWidgets.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-cyan-950 border border-cyan-800 text-cyan-300 text-[9px] font-mono rounded-full px-1">
+                  {dashboardWidgets.length}
+                </span>
+              )}
+            </button>
+          )}
+
           {/* Quick Add Button */}
           {activeTab === 'connections' && (
             <button
@@ -322,6 +342,16 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
               }}
               className="p-1.5 rounded-lg bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500 hover:text-zinc-950 transition-all cursor-pointer shadow-xs"
               title="Create New Workflow"
+            >
+              <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+            </button>
+          )}
+
+          {activeTab === 'dashboard' && (
+            <button
+              onClick={() => setDashboardAddModalOpen(true)}
+              className="p-1.5 rounded-lg bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500 hover:text-zinc-950 transition-all cursor-pointer shadow-xs"
+              title="Add Dashboard Widget"
             >
               <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
             </button>
@@ -375,6 +405,12 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
               <span>Workflows ({workflows.length})</span>
             </>
           )}
+          {activeTab === 'dashboard' && (
+            <>
+              <LayoutDashboard className="h-3.5 w-3.5 text-cyan-400" />
+              <span>Widgets ({dashboardWidgets.length})</span>
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-1">
@@ -399,6 +435,18 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
             >
               <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
               <span>New</span>
+            </Button>
+          )}
+
+          {activeTab === 'dashboard' && (
+            <Button
+              size="sm"
+              onClick={() => setDashboardAddModalOpen(true)}
+              className="h-6 px-2 bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-semibold shadow-sm shadow-cyan-500/25 rounded-md text-[11px] flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
+              title="Add Dashboard Widget"
+            >
+              <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+              <span>Add</span>
             </Button>
           )}
 
@@ -660,6 +708,13 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
         {activeTab === 'subscriber' && (
           <div className="p-2 text-zinc-500 text-xs font-mono text-center">
             Topic subscriptions and active wildcards appear in the subscriber stage.
+          </div>
+        )}
+
+        {/* Dashboard */}
+        {activeTab === 'dashboard' && (
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <DashboardSidebar onAddNewWidget={() => setDashboardAddModalOpen(true)} />
           </div>
         )}
       </div>

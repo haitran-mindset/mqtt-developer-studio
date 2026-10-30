@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { WorkflowDefinition, WorkflowRunRecord, WorkflowStepRunLog } from '../db/types';
-import type { WorkflowExecutionContext, StepExecutorContext } from './types';
+import type { WorkflowExecutionContext, StepExecutorContext, WorkflowAssertionResult } from './types';
 import { StepExecutors } from './StepExecutors';
 import { VariableInterpolator } from '../template/VariableInterpolator';
 import { useDataStore } from '../store/dataStore';
@@ -47,11 +47,32 @@ export class WorkflowEngine {
     return { ...this.context.variables, ...this.context };
   }
 
-  async run(fromNodeId?: string): Promise<WorkflowRunRecord> {
+  getTriggerNodes(): any[] {
+    return (this.workflow.nodes || []).filter(
+      (n: any) => n.data?.stepType === 'mqtt_trigger' && !n.data?.disabled
+    );
+  }
+
+  async run(
+    fromNodeId?: string,
+    options?: {
+      triggerType?: 'manual' | 'mqtt_event';
+      triggerTopic?: string;
+      initialPayload?: any;
+    }
+  ): Promise<WorkflowRunRecord> {
     this.aborted = false;
     const runId = uuidv4();
     const startedAt = Date.now();
     const stepsLog: WorkflowStepRunLog[] = [];
+    const allAssertions: WorkflowAssertionResult[] = [];
+
+    if (options?.initialPayload !== undefined) {
+      this.context.lastReceivedPayload = options.initialPayload;
+    }
+    if (options?.triggerTopic) {
+      this.context.lastReceivedTopic = options.triggerTopic;
+    }
 
     const nodes = this.workflow.nodes || [];
     const edges = this.workflow.edges || [];
@@ -95,7 +116,7 @@ export class WorkflowEngine {
     // Execute all independent root pipelines in parallel
     const branchResults = await Promise.all(
       initialNodes.map((startNode: any) =>
-        this.executeNode(startNode, nodes, edges, stepsLog, new Map<string, number>())
+        this.executeNode(startNode, nodes, edges, stepsLog, allAssertions, new Map<string, number>())
       )
     );
 
@@ -106,6 +127,15 @@ export class WorkflowEngine {
       overallStatus = 'cancelled';
     }
 
+    const assertionSummary =
+      allAssertions.length > 0
+        ? {
+            total: allAssertions.length,
+            passed: allAssertions.filter((a) => a.passed).length,
+            failed: allAssertions.filter((a) => !a.passed).length,
+          }
+        : undefined;
+
     const runRecord: WorkflowRunRecord = {
       id: runId,
       workflowId: this.workflow.id,
@@ -114,6 +144,10 @@ export class WorkflowEngine {
       startedAt,
       completedAt: Date.now(),
       stepsLog,
+      assertions: allAssertions.length > 0 ? allAssertions : undefined,
+      assertionSummary,
+      triggerType: options?.triggerType || 'manual',
+      triggerTopic: options?.triggerTopic,
       contextSnapshot: { ...this.context.variables },
     };
 
@@ -127,6 +161,7 @@ export class WorkflowEngine {
     nodes: any[],
     edges: any[],
     stepsLog: WorkflowStepRunLog[],
+    allAssertions: WorkflowAssertionResult[],
     visitCounts: Map<string, number>
   ): Promise<boolean> {
     if (this.aborted || node.data?.disabled) {
@@ -166,6 +201,10 @@ export class WorkflowEngine {
 
       if (this.aborted) {
         return false;
+      }
+
+      if (result.assertions && result.assertions.length > 0) {
+        allAssertions.push(...result.assertions);
       }
 
       if (result.success) {
@@ -209,7 +248,7 @@ export class WorkflowEngine {
         // Execute all outgoing child branches in parallel
         const childResults = await Promise.all(
           nextNodes.map((childNode: any) =>
-            this.executeNode(childNode, nodes, edges, stepsLog, nextVisitCounts)
+            this.executeNode(childNode, nodes, edges, stepsLog, allAssertions, nextVisitCounts)
           )
         );
 

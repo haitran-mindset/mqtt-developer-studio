@@ -1,4 +1,4 @@
-import type { StepExecutorContext, StepExecutionResult, WorkflowStepType } from './types';
+import type { StepExecutorContext, StepExecutionResult, WorkflowStepType, WorkflowAssertionResult } from './types';
 import { MQTTTopicMatcher } from '../mqtt/MQTTTopicMatcher';
 
 export class StepExecutors {
@@ -6,6 +6,8 @@ export class StepExecutors {
     switch (stepType) {
       case 'start_label':
         return StepExecutors.executeStartLabel(ctx);
+      case 'mqtt_trigger':
+        return StepExecutors.executeMqttTrigger(ctx);
       case 'publish':
         return StepExecutors.executePublish(ctx);
       case 'subscribe':
@@ -20,6 +22,8 @@ export class StepExecutors {
         return StepExecutors.executeValidatePayload(ctx);
       case 'validate_schema':
         return StepExecutors.executeValidateSchema(ctx);
+      case 'run_script':
+        return StepExecutors.executeRunScript(ctx);
       case 'set_variable':
         return StepExecutors.executeSetVariable(ctx);
       case 'extract_variable':
@@ -228,14 +232,33 @@ export class StepExecutors {
         passed = actualStr === expectedRaw;
     }
 
+    const assertion: WorkflowAssertionResult = {
+      stepId: ctx.nodeId,
+      stepName: ctx.stepName,
+      stepType: 'validate_payload',
+      passed,
+      expected: `${operator} '${expectedRaw}'`,
+      actual: actualStr,
+      message: passed
+        ? `Field '${field}' (${actualStr}) satisfied ${operator} '${expectedRaw}'`
+        : `Field '${field}' (${actualStr}) did not satisfy ${operator} '${expectedRaw}'`,
+      timestamp: Date.now(),
+    };
+
     if (!passed) {
       return {
         success: false,
         error: `Assertion failed: field '${field}' (${actualStr}) did not satisfy ${operator} '${expectedRaw}'`,
+        assertions: [assertion],
+        output: { field, actualValue, operator, expected: expectedRaw, passed: false },
       };
     }
 
-    return { success: true, output: { field, actualValue, operator, expected: expectedRaw } };
+    return {
+      success: true,
+      output: { field, actualValue, operator, expected: expectedRaw, passed: true },
+      assertions: [assertion],
+    };
   }
 
   // 7. Set Variable
@@ -420,6 +443,20 @@ export class StepExecutors {
     // Validate
     const errors = StepExecutors.validateJsonAgainstSchema(targetData, schemaObj);
 
+    const passed = errors.length === 0;
+    const assertion: WorkflowAssertionResult = {
+      stepId: ctx.nodeId,
+      stepName: ctx.stepName,
+      stepType: 'validate_schema',
+      passed,
+      expected: 'Valid JSON matching schema',
+      actual: passed ? 'Valid' : `${errors.length} schema error(s)`,
+      message: passed
+        ? 'Schema validation passed successfully'
+        : `Schema validation failed (${errors.length} errors): ${errors.slice(0, 2).join('; ')}`,
+      timestamp: Date.now(),
+    };
+
     if (errors.length > 0) {
       return {
         success: false,
@@ -429,6 +466,7 @@ export class StepExecutors {
           errors,
           payload: targetData,
         },
+        assertions: [assertion],
       };
     }
 
@@ -439,6 +477,7 @@ export class StepExecutors {
         errors: [],
         payload: targetData,
       },
+      assertions: [assertion],
     };
   }
 
@@ -542,5 +581,99 @@ export class StepExecutors {
         startedAt: Date.now(),
       },
     };
+  }
+
+  // 17. MQTT Event Trigger (Entry point triggered by incoming message)
+  private static async executeMqttTrigger(ctx: StepExecutorContext): Promise<StepExecutionResult> {
+    const topic = ctx.stepConfig.topic || '';
+    const variableName = ctx.stepConfig.variableName;
+    const payload = ctx.context.lastReceivedPayload;
+
+    if (variableName && payload !== undefined) {
+      ctx.context.variables[variableName] = payload;
+    }
+
+    return {
+      success: true,
+      output: {
+        triggerTopic: ctx.context.lastReceivedTopic || topic,
+        payload,
+        triggeredAt: Date.now(),
+      },
+    };
+  }
+
+  // 18. Custom JavaScript Script Execution
+  private static async executeRunScript(ctx: StepExecutorContext): Promise<StepExecutionResult> {
+    const code = ctx.stepConfig.code || '';
+    const timeoutMs = Number(ctx.stepConfig.timeoutMs) || 5000;
+
+    if (!code.trim()) {
+      return { success: true, output: 'No script code provided' };
+    }
+
+    const payload = ctx.context.lastReceivedPayload;
+    const context = ctx.context;
+    const variables = ctx.context.variables;
+    const topic = ctx.context.lastReceivedTopic || '';
+    const qos = ctx.stepConfig.qos ?? 0;
+
+    const assertions: WorkflowAssertionResult[] = [];
+
+    try {
+      const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+      const fn = new AsyncFunction('payload', 'context', 'variables', 'topic', 'qos', code);
+
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`Script execution timed out after ${timeoutMs}ms`)), timeoutMs);
+      });
+
+      const rawResult = await Promise.race([
+        fn(payload, context, variables, topic, qos),
+        timeoutPromise,
+      ]);
+
+      // If returned value is an object, merge into variables
+      if (rawResult && typeof rawResult === 'object' && !Array.isArray(rawResult)) {
+        // Check for custom assertions
+        if ('assert' in rawResult) {
+          const passed = Boolean(rawResult.assert);
+          assertions.push({
+            stepId: ctx.nodeId,
+            stepName: ctx.stepName,
+            stepType: 'run_script',
+            passed,
+            message: String(rawResult.message || (passed ? 'Custom script assertion passed' : 'Custom script assertion failed')),
+            expected: 'true',
+            actual: String(passed),
+            timestamp: Date.now(),
+          });
+        }
+
+        Object.assign(ctx.context.variables, rawResult);
+      }
+
+      return {
+        success: true,
+        output: rawResult,
+        assertions: assertions.length > 0 ? assertions : undefined,
+      };
+    } catch (err: any) {
+      const errMsg = err.message || String(err);
+      return {
+        success: false,
+        error: `Script error: ${errMsg}`,
+        assertions: [
+          {
+            stepId: ctx.nodeId,
+            stepName: ctx.stepName,
+            stepType: 'run_script',
+            passed: false,
+            message: `Script error: ${errMsg}`,
+            timestamp: Date.now(),
+          },
+        ],
+      };
+    }
   }
 }

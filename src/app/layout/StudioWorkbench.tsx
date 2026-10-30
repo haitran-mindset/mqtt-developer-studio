@@ -8,6 +8,7 @@ import { ConnectionModal } from '@/features/connections/ConnectionModal';
 import { PublisherView } from '@/features/publisher/PublisherView';
 import { SubscriberView } from '@/features/subscriber/SubscriberView';
 import { WorkflowStudio } from '@/features/workflows/WorkflowStudio';
+import { DashboardStudio } from '@/features/dashboard/DashboardStudio';
 import { useStudioStore } from '../store/studioStore';
 import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
 import type { ConnectionProfile, PublishPreset, StoredMessage } from '@/core/db/types';
@@ -105,6 +106,8 @@ export const StudioWorkbench: React.FC = () => {
           )}
 
           {activeTab === 'workflows' && <WorkflowStudio />}
+
+          {activeTab === 'dashboard' && <DashboardStudio />}
         </main>
       </div>
 

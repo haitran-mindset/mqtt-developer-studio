@@ -8,6 +8,11 @@ dist
 dist-ssr
 *.local
 
+# Rust & Tauri
+src-tauri/target/
+src-tauri/gen/schemas/
+target/
+
 # Environment files
 .env
 .env.local

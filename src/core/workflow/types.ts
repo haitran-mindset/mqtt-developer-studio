@@ -1,5 +1,6 @@
 export type WorkflowStepType =
   | 'start_label'
+  | 'mqtt_trigger'
   | 'publish'
   | 'subscribe'
   | 'unsubscribe'
@@ -7,6 +8,7 @@ export type WorkflowStepType =
   | 'wait_for_message'
   | 'validate_payload'
   | 'validate_schema'
+  | 'run_script'
   | 'set_variable'
   | 'extract_variable'
   | 'condition'
@@ -16,11 +18,23 @@ export type WorkflowStepType =
   | 'fail'
   | 'switch_connection';
 
+export interface WorkflowAssertionResult {
+  stepId: string;
+  stepName: string;
+  stepType: WorkflowStepType;
+  passed: boolean;
+  expected?: string;
+  actual?: string;
+  message: string;
+  timestamp: number;
+}
+
 export interface StepExecutionResult {
   success: boolean;
   nextHandle?: string; // e.g. 'true' or 'false' for condition, or undefined for default next
   error?: string;
   output?: any;
+  assertions?: WorkflowAssertionResult[];
 }
 
 export interface WorkflowExecutionContext {

@@ -13,8 +13,9 @@ import {
 } from '@/components/ui/select';
 import type { WorkflowStepType } from '@/core/workflow/types';
 import { useDataStore } from '@/core/store/dataStore';
-import { X, Sparkles, Trash2, Play, Copy, RotateCw, Flag } from 'lucide-react';
+import { X, Sparkles, Trash2, Play, Copy, RotateCw, Flag, Zap, Code2 } from 'lucide-react';
 import { FLOW_START_PALETTE, getRandomFlowColor } from '@/core/workflow/flowColors';
+import Editor from '@monaco-editor/react';
 
 interface WorkflowNodeInspectorProps {
   selectedNode: any;
@@ -667,6 +668,166 @@ export const WorkflowNodeInspector: React.FC<WorkflowNodeInspectorProps> = ({
               <p className="leading-relaxed text-[10px] text-zinc-400">
                 All nodes connected downstream from this Start Flow node automatically inherit this color on their borders and connection wires.
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* Step: MQTT Trigger */}
+        {stepType === 'mqtt_trigger' && (
+          <div className="space-y-3">
+            <div className="p-2.5 rounded-lg bg-purple-950/30 border border-purple-800/40 text-xs text-purple-300">
+              <span className="font-semibold block mb-1">Event-Driven Trigger</span>
+              This workflow will automatically start executing when an incoming MQTT message arrives matching this topic.
+            </div>
+
+            <div>
+              <Label className="text-[11px] font-medium text-zinc-300">Topic Filter (wildcards + and # allowed)</Label>
+              <Input
+                value={config.topic || ''}
+                onChange={(e) => handleUpdateConfig('topic', e.target.value)}
+                placeholder="e.g. devices/+/telemetry or cmd/reboot"
+                className="h-8 font-mono text-xs mt-1"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[11px] font-medium text-zinc-300">Subscription QoS</Label>
+                <Select
+                  value={String(config.qos ?? 0)}
+                  onValueChange={(val) => handleUpdateConfig('qos', Number(val))}
+                >
+                  <SelectTrigger className="h-8 text-xs mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">0 - At most once</SelectItem>
+                    <SelectItem value="1">1 - At least once</SelectItem>
+                    <SelectItem value="2">2 - Exactly once</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-[11px] font-medium text-zinc-300">Store Payload As</Label>
+                <Input
+                  value={config.variableName || ''}
+                  onChange={(e) => handleUpdateConfig('variableName', e.target.value)}
+                  placeholder="e.g. deviceEvent"
+                  className="h-8 font-mono text-xs mt-1"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-[11px] font-medium text-zinc-300">Filter Expression (Optional JS condition)</Label>
+              <Input
+                value={config.filterExpression || ''}
+                onChange={(e) => handleUpdateConfig('filterExpression', e.target.value)}
+                placeholder="e.g. payload.status === 'ALERT' || payload.temp > 50"
+                className="h-8 font-mono text-xs mt-1"
+              />
+              <span className="text-[10px] text-zinc-500 mt-1 block">
+                Workflow only triggers if this condition evaluates to true.
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Step: Custom Script (JS) */}
+        {stepType === 'run_script' && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-[11px] font-medium text-zinc-300">Custom JavaScript Code</Label>
+              <Select
+                onValueChange={(val) => {
+                  let template = '';
+                  if (val === 'transform') {
+                    template = `// Transform incoming payload to Fahrenheit and compute alarm
+const tempC = payload?.temperature ?? 25;
+const tempF = (tempC * 9/5) + 32;
+return {
+  tempF,
+  isAlarm: tempC > 45,
+  processedAt: new Date().toISOString()
+};`;
+                  } else if (val === 'assertion') {
+                    template = `// Validate payload properties with custom assertion
+const status = payload?.status;
+const valid = status === 'OK' || status === 'ONLINE';
+return {
+  assert: valid,
+  message: valid ? 'Status is healthy' : \`Unexpected status: \${status}\`
+};`;
+                  } else if (val === 'math') {
+                    template = `// Perform mathematical computation or bitwise decoding
+const rawBytes = payload?.rawHex || '0x1A';
+const decimalVal = parseInt(rawBytes, 16);
+return {
+  decimalVal,
+  scaled: decimalVal * 0.1
+};`;
+                  }
+                  if (template) {
+                    handleUpdateConfig('code', template);
+                  }
+                }}
+              >
+                <SelectTrigger className="h-6 w-36 text-[10px]">
+                  <SelectValue placeholder="Code Templates..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="transform">Transform Data</SelectItem>
+                  <SelectItem value="assertion">Custom Assertion</SelectItem>
+                  <SelectItem value="math">Math / Hex Decode</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="border border-zinc-800 rounded-md overflow-hidden bg-zinc-950">
+              <Editor
+                height="220px"
+                language="javascript"
+                theme="vs-dark"
+                value={
+                  config.code ||
+                  '// Write async JavaScript here\n// Available: payload, context, variables, topic, qos\nreturn {};'
+                }
+                onChange={(value) => handleUpdateConfig('code', value || '')}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 11,
+                  fontFamily: 'JetBrains Mono, Menlo, monospace',
+                  lineNumbers: 'on',
+                  scrollBeyondLastLine: false,
+                  wordWrap: 'on',
+                  tabSize: 2,
+                }}
+              />
+            </div>
+
+            <div>
+              <Label className="text-[11px] font-medium text-zinc-300">Execution Timeout (ms)</Label>
+              <Input
+                type="number"
+                value={config.timeoutMs ?? 5000}
+                onChange={(e) => handleUpdateConfig('timeoutMs', Number(e.target.value) || 5000)}
+                placeholder="5000"
+                className="h-8 font-mono text-xs mt-1"
+              />
+              <span className="text-[10px] text-zinc-500 mt-1 block">
+                Abort script if execution takes longer than this duration.
+              </span>
+            </div>
+
+            <div className="p-2 rounded bg-zinc-900/60 border border-zinc-800 text-[10px] text-zinc-400 space-y-1">
+              <span className="font-semibold text-zinc-300 block">Scope Variables:</span>
+              <ul className="list-disc pl-4 space-y-0.5 font-mono">
+                <li><code className="text-cyan-400">payload</code>: Last received MQTT payload</li>
+                <li><code className="text-cyan-400">variables</code>: Workflow variables map</li>
+                <li><code className="text-cyan-400">context</code>: Execution context</li>
+                <li><code className="text-cyan-400">topic</code>, <code className="text-cyan-400">qos</code>: Trigger metadata</li>
+              </ul>
             </div>
           </div>
         )}

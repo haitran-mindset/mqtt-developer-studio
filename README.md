@@ -6,11 +6,13 @@
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Tauri](https://img.shields.io/badge/Tauri_v2-24C8D5?style=for-the-badge&logo=tauri&logoColor=white)
+![Rust](https://img.shields.io/badge/Rust-DEA584?style=for-the-badge&logo=rust&logoColor=black)
 ![MQTT](https://img.shields.io/badge/MQTT_5.0_%26_3.1.1-660066?style=for-the-badge&logo=mqtt&logoColor=white)
 
-**A professional, developer-first web-based IDE for MQTT testing, debugging, real-time monitoring, and visual workflow automation.**
+**A professional, developer-first desktop & web IDE for MQTT testing, debugging, real-time telemetry monitoring, and visual workflow automation.**
 
-[Key Features](#-key-features) • [Getting Started](#-getting-started) • [Architecture](#-project-architecture) • [Workflow Engine](#-visual-workflow-automation-engine) • [Import & Export](#-multi-workflow-batch-import--export) • [License](#-license)
+[Key Features](#-key-features) • [Desktop App](#6-️-run-as-desktop-application-tauri-v2) • [Dashboard](#5--real-time-mini-dashboard--data-visualization) • [Workflow Engine](#4--visual-workflow-automation-engine) • [Import & Export](#6--multi-workflow-batch-import--export) • [Getting Started](#-getting-started) • [License](#-license)
 
 </div>
 
@@ -67,26 +69,45 @@ Combining the multi-connection capabilities of tools like **MQTTX** and **MQTT E
   - Drag-and-drop workflow step palette.
   - Direct connections: Main flow, conditional `true` / `false` branches, and loop back-edges.
   - Live execution status badges: _Idle, Running (pulsing), Succeeded, Failed_.
-- **14 Specialized Step Types**:
-  1. `publish`: Publish a message with topic, payload, QoS, and retain settings.
-  2. `subscribe`: Subscribe to a topic and await SUBACK before proceeding.
-  3. `unsubscribe`: Unsubscribe from a topic.
-  4. `delay`: Pause execution for a specified duration in milliseconds.
-  5. `wait_for_message`: Await a matching message on a topic within a timeout window, supporting correlation ID matching (e.g., `payload.requestId === context.requestId`).
-  6. `validate_payload`: Assertion checks on payload properties (equals, contains, regex, numeric comparisons).
-  7. `set_variable`: Define or compute runtime variables in the workflow context.
-  8. `extract_variable`: Use JSONPath expressions to extract payload values into context variables.
-  9. `condition`: Evaluate JavaScript expressions to branch flow logic.
-  10. `loop`: Repeat a sub-graph $N$ times or while a condition remains truthy.
-  11. `log`: Write structured output to the workflow console.
-  12. `stop`: Explicit graceful termination.
-  13. `fail`: Abort execution with a custom error message.
-  14. `trigger_event`: Dispatch custom internal events.
+- **16 Specialized Step Types**:
+  1. `start_label`: Flow section entry marker with custom visual downstream color theming.
+  2. `mqtt_trigger`: **(New)** Event-driven trigger that auto-executes the workflow when incoming MQTT messages match a topic filter.
+  3. `publish`: Publish a message with topic, payload, QoS, and retain settings.
+  4. `subscribe`: Subscribe to a topic and await SUBACK before proceeding.
+  5. `unsubscribe`: Unsubscribe from a topic.
+  6. `delay`: Pause execution for a specified duration in milliseconds.
+  7. `wait_for_message`: Await a matching message on a topic within a timeout window, supporting correlation ID matching (e.g., `payload.requestId === context.requestId`).
+  8. `validate_payload`: Assertion checks on payload properties (equals, contains, regex, numeric comparisons).
+  9. `validate_schema`: Full JSON Schema validator for payload structure and types.
+  10. `run_script`: **(New)** Custom asynchronous JavaScript sandbox powered by Monaco Code Editor to transform data, evaluate formulas, or decode binary hex.
+  11. `set_variable`: Define or compute runtime variables in the workflow context.
+  12. `extract_variable`: Use JSONPath expressions to extract payload values into context variables.
+  13. `condition`: Evaluate JavaScript expressions to branch flow logic.
+  14. `loop`: Repeat a sub-graph $N$ times or while a condition remains truthy.
+  15. `log`: Write structured output to the workflow console.
+  16. `stop` / `fail`: Explicit termination or failure assertion.
+- **Listen Mode (Event-Driven Background Trigger)**: Arm workflows to continuously listen for matching MQTT messages in the background and auto-execute branches in real time.
+- **Test Results & Assertion Summary**: Dedicated "Test Results" tab in the bottom panel displaying Pass/Fail rates, assertion breakdown, and one-click exports to standalone **HTML** and **JSON** test reports.
 - **Workflow Templates Library**: Pre-built, real-world templates (Request/Response RPC, Temperature/Humidity Sensor Simulation, Device Provisioning Flow, Stress & Load Testing).
 - **Execution & History Controls**: Run complete workflow, Run from Selected Node, Abort execution, Reset step markers, and Full Undo / Redo history (`Ctrl+Z` / `Ctrl+Y`).
 - **Drag-and-Drop Reordering**: Easily reorder workflows in the sidebar via drag handles.
 
-### 5. 📦 Multi-Workflow Batch Import & Export
+### 5. 📊 Real-Time Mini Dashboard & Data Visualization
+
+- **Live Telemetry Monitoring**: Turn raw MQTT streams into visual control panels with zero external dependencies or server-side setups.
+- **Auto-Subscription Pipeline**: Automatically subscribes active broker connections to all required telemetry topics declared by widgets.
+- **6 Specialized Telemetry Widgets**:
+  1. `Line Chart`: Smooth SVG bezier curve time-series with gradient area fill, sliding window history (up to 50 points), and instant Min/Max/Average calculations.
+  2. `Radial Gauge`: 240-degree circular arc meter with color-coded safety and danger threshold zones, dynamic progress sweep, and central numerical readout.
+  3. `Metric / Stat Card`: High-impact studio typography displaying current value, measurement unit, delta percentage trend (`+1.5%`), and last event timestamp.
+  4. `Status LED`: Glowing beacon and pulsating status indicators for discrete operational flags (e.g., `ONLINE`, `WARNING`, `FAULT`) with custom key-value color mappings.
+  5. `Toggle Switch`: Interactive tactile control toggle to send ON/OFF command payloads (e.g. `{"state":"ON"}`) to publish topics while synchronizing state from incoming telemetry.
+  6. `Push Button`: Command trigger button for instant MQTT dispatches (e.g., `REBOOT`, `CALIBRATE`, `EMERGENCY_STOP`).
+- **Data Extractor**: Built-in JSONPath parser supporting dot-notation and array indices (e.g., `$.sensor.temp`, `data.readings[0].val`) as well as raw numeric and boolean payloads.
+- **Dashboard Presets**: One-click preset templates for **Smart Home & Environment** and **Industrial Motor & Hydraulics**.
+- **Layout Management**: Export and import complete dashboard configurations to/from `.json` files.
+
+### 6. 📦 Multi-Workflow Batch Import & Export
 
 - **Flexible Export**:
   - **Export Current**: Export the active workflow into a clean `.json` file.
@@ -97,12 +118,12 @@ Combining the multi-connection capabilities of tools like **MQTTX** and **MQTT E
   - Automatically detects individual workflow files, bundle packages (`mqtt-studio-workflows-bundle`), and JSON arrays.
   - Auto-regenerates unique IDs for workflows, nodes, and edges to prevent canvas collisions.
 
-### 6. 🔒 Privacy-First Architecture
+### 7. 🔒 Privacy-First Architecture
 
-- **Strictly Local Storage**: Connection credentials, passwords, message histories, presets, and workflows are stored exclusively in the browser using **IndexedDB** (Dexie.js) and **LocalStorage** (Zustand persist).
-- **Zero Cloud Leakage**: No telemetry, analytics, or credentials leave the user's browser. The application operates entirely client-side.
+- **In-Memory & Zero LocalStorage Tracking**: The studio operates completely in-memory with zero silent background `localStorage` tracking. Sensitive broker credentials are never saved to disk.
+- **Zero Cloud Leakage**: No telemetry, analytics, or credentials leave the user's browser or machine. The application operates entirely client-side.
 
-### 7. 📱 Responsive & Adaptive IDE Layout
+### 8. 📱 Responsive & Adaptive IDE Layout
 
 - Seamlessly adapts across all screen breakpoints:
   - **Desktop (>= 1024px)**: Full 3-column developer workbench (Sidebar, Canvas/Stage, Inspector).
@@ -115,10 +136,11 @@ Combining the multi-connection capabilities of tools like **MQTTX** and **MQTT E
 
 | Layer                | Technology                               | Purpose                                                      |
 | -------------------- | ---------------------------------------- | ------------------------------------------------------------ |
+| **Desktop Runtime**  | Tauri v2, Rust 1.99, `rumqttc`, Tokio    | Native OS window, direct raw TCP (1883) & TLS (8883) sockets |
 | **Core Framework**   | React 18, TypeScript (Strict Mode), Vite | High-performance reactive web application                    |
 | **Styling & Icons**  | Tailwind CSS v4, Lucide React            | Modern dark-themed developer IDE interface                   |
 | **UI Primitives**    | Radix UI (`@radix-ui/*`) / shadcn/ui     | Accessible Dialog, DropdownMenu, Select, Tabs, Tooltip       |
-| **MQTT Client**      | `mqtt` (MQTT.js v5)                      | WebSocket transport, MQTT 3.1.1 & 5.0 protocol engine        |
+| **Web MQTT Client**  | `mqtt` (MQTT.js v5)                      | WebSocket transport (`ws://`, `wss://`)                      |
 | **Code Editor**      | `@monaco-editor/react`                   | Payload editing, JSON validation, and formatting             |
 | **Workflow Canvas**  | `@xyflow/react` (React Flow)             | Drag-and-drop node graph canvas and edges                    |
 | **State Management** | Zustand (with Persist Middleware)        | UI workbench state and persisted user preferences            |
@@ -167,6 +189,18 @@ The optimized production bundle will be generated in the `dist/` directory.
 
 ```bash
 npm run preview
+```
+
+### 6. 🖥️ Run as Desktop Application (Tauri v2)
+
+For native TCP socket connections (`mqtt://host:1883` and `mqtts://host:8883`):
+
+```bash
+# Run desktop app in development mode
+npm run desktop:dev
+
+# Build native desktop bundle (.dmg, .app, .deb, or .msi)
+npm run desktop:build
 ```
 
 ---

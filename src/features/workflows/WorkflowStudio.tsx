@@ -40,6 +40,7 @@ import {
 import { getRandomFlowColor, computeFlowColorMaps } from '@/core/workflow/flowColors';
 import { useWorkflowHistory } from './useWorkflowHistory';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { MQTTTopicMatcher } from '@/core/mqtt/MQTTTopicMatcher';
 
 const nodeTypes = {
   workflowCustomNode: WorkflowCustomNode,
@@ -60,6 +61,7 @@ export const WorkflowStudio: React.FC = () => {
     setActiveWorkflowId,
     workflowPaletteCollapsed,
     toggleWorkflowPalette,
+    setLastWorkflowRun,
   } = useStudioStore();
 
   const isMobile = useIsMobile();
@@ -80,7 +82,17 @@ export const WorkflowStudio: React.FC = () => {
   const [deleteWorkflowDialogOpen, setDeleteWorkflowDialogOpen] = useState(false);
   const [templatesModalOpen, setTemplatesModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const triggerNodes = useMemo(
+    () => nodes.filter((n) => n.data?.stepType === 'mqtt_trigger' && !n.data?.disabled),
+    [nodes]
+  );
+
+  useEffect(() => {
+    setIsListening(false);
+  }, [activeWorkflowId]);
 
   const [isRunning, setIsRunning] = useState(false);
   const [statusText, setStatusText] = useState<string>('');
@@ -635,7 +647,14 @@ export const WorkflowStudio: React.FC = () => {
   };
 
   // RUN WORKFLOW
-  const handleRunWorkflow = async (fromNodeId?: string) => {
+  const handleRunWorkflow = async (
+    fromNodeId?: string,
+    options?: {
+      triggerType?: 'manual' | 'mqtt_event';
+      triggerTopic?: string;
+      initialPayload?: any;
+    }
+  ) => {
     const { connectionProfiles } = useDataStore.getState();
 
     // Resolve target connection profile
@@ -700,14 +719,29 @@ export const WorkflowStudio: React.FC = () => {
     });
 
     try {
-      const runRecord = await engine.run(fromNodeId);
+      const runRecord = await engine.run(fromNodeId, options);
 
       // Log steps to global studio store for bottom panel
       runRecord.stepsLog.forEach((s) => addWorkflowLog(s));
 
+      // Persist last run record for Test Results tab
+      setLastWorkflowRun(runRecord);
+
       if (runRecord.status === 'completed') {
         setStatusText('Completed successfully');
-        toast.success(`Workflow "${currentWorkflow.name}" completed!`);
+        if (runRecord.assertionSummary && runRecord.assertionSummary.total > 0) {
+          if (runRecord.assertionSummary.failed > 0) {
+            toast.warning(
+              `Completed with ${runRecord.assertionSummary.failed} failed assertion(s). Check Test Results tab.`
+            );
+          } else {
+            toast.success(
+              `All ${runRecord.assertionSummary.total} assertion(s) passed!`
+            );
+          }
+        } else {
+          toast.success(`Workflow "${currentWorkflow.name}" completed!`);
+        }
       } else if (runRecord.status === 'cancelled') {
         setStatusText('Aborted');
         toast.info('Workflow execution aborted.');
@@ -723,6 +757,63 @@ export const WorkflowStudio: React.FC = () => {
       currentEngineRef.current = null;
     }
   };
+
+  // Setup background subscription and message listener when Listen Mode is active
+  useEffect(() => {
+    if (!isListening || triggerNodes.length === 0 || !activeConnectionId) return;
+
+    const adapter = connectionManager.getConnection(activeConnectionId);
+    if (!adapter) return;
+
+    // Subscribe to all trigger topics
+    triggerNodes.forEach((node) => {
+      const nodeData = node.data as any;
+      const topic = nodeData?.config?.topic;
+      if (topic) {
+        adapter.subscribe(topic, (nodeData?.config?.qos ?? 0) as 0 | 1 | 2).catch(console.error);
+      }
+    });
+
+    const unsub = connectionManager.onGlobalMessage((msg: any) => {
+      if (msg.connectionId !== activeConnectionId) return;
+
+      for (const triggerNode of triggerNodes) {
+        const triggerData = triggerNode.data as any;
+        const triggerTopic = triggerData?.config?.topic;
+        if (!triggerTopic) continue;
+
+        if (MQTTTopicMatcher.matches(triggerTopic, msg.topic)) {
+          let parsedPayload: any = msg.payload;
+          try {
+            parsedPayload = JSON.parse(msg.payload);
+          } catch {}
+
+          const filterExpr = triggerData?.config?.filterExpression;
+          if (filterExpr) {
+            try {
+              const check = new Function('payload', 'topic', `return Boolean(${filterExpr});`);
+              if (!check(parsedPayload, msg.topic)) continue;
+            } catch (e) {
+              console.warn('[WorkflowTrigger] Filter error:', e);
+              continue;
+            }
+          }
+
+          toast.info(`Triggered workflow by message on "${msg.topic}"`);
+          handleRunWorkflow(triggerNode.id, {
+            triggerType: 'mqtt_event',
+            triggerTopic: msg.topic,
+            initialPayload: parsedPayload,
+          });
+          break;
+        }
+      }
+    });
+
+    return () => {
+      unsub();
+    };
+  }, [isListening, triggerNodes, activeConnectionId]);
 
   // Abort running workflow
   const handleAbort = () => {
@@ -820,6 +911,9 @@ export const WorkflowStudio: React.FC = () => {
         currentWorkflow={currentWorkflow}
         onSelectWorkflow={(wf) => setActiveWorkflowId(wf.id)}
         statusText={statusText}
+        isListening={isListening}
+        onToggleListenMode={() => setIsListening((prev) => !prev)}
+        triggerCount={triggerNodes.length}
       />
 
       {/* Main Studio: Palette on Left, Canvas in Middle, Inspector on Right */}

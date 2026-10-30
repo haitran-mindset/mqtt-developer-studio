@@ -17,6 +17,8 @@ import {
   Layers,
   CheckSquare,
   ChevronDown,
+  Radio,
+  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -60,6 +62,9 @@ interface WorkflowRunControlsProps {
   currentWorkflow: WorkflowDefinition | null;
   onSelectWorkflow: (wf: WorkflowDefinition) => void;
   statusText?: string;
+  isListening?: boolean;
+  onToggleListenMode?: () => void;
+  triggerCount?: number;
 }
 
 export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
@@ -85,6 +90,9 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
   currentWorkflow,
   onSelectWorkflow,
   statusText,
+  isListening = false,
+  onToggleListenMode,
+  triggerCount = 0,
 }) => {
   return (
     <div className="border-b border-zinc-800 bg-zinc-900/50 select-none shrink-0 text-xs">
@@ -348,6 +356,34 @@ export const WorkflowRunControls: React.FC<WorkflowRunControlsProps> = ({
             <RotateCcw className="h-3 w-3 mr-1" />
             <span>Reset</span>
           </Button>
+
+          {onToggleListenMode && triggerCount > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onToggleListenMode}
+              className={`h-7 text-xs flex items-center gap-1.5 px-3 font-medium transition-all ${
+                isListening
+                  ? 'border-purple-500/80 bg-purple-950/40 text-purple-300 shadow-sm shadow-purple-950/40'
+                  : 'border-zinc-800 text-zinc-400 hover:text-purple-300 hover:border-purple-500/50'
+              }`}
+              title={
+                isListening
+                  ? 'Listening for incoming MQTT trigger messages (Click to Stop)'
+                  : `Arm workflow to auto-trigger on ${triggerCount} configured MQTT topic(s)`
+              }
+            >
+              <Radio
+                className={`h-3.5 w-3.5 ${
+                  isListening ? 'text-purple-400 animate-pulse' : 'text-zinc-500'
+                }`}
+              />
+              <span>{isListening ? 'Listening...' : 'Listen Mode'}</span>
+              <span className="text-[10px] px-1 py-0.2 rounded bg-purple-900/60 text-purple-200 font-mono">
+                {triggerCount}
+              </span>
+            </Button>
+          )}
 
           {isRunning ? (
             <Button

@@ -10,7 +10,9 @@ import {
   Copy,
   Check,
   X,
+  CheckCircle2,
 } from 'lucide-react';
+import { WorkflowTestResultsTab } from '@/features/workflows/reports/WorkflowTestResultsTab';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useStudioStore, type BottomPanelTab } from '../store/studioStore';
 import { Button } from '@/components/ui/button';
@@ -32,6 +34,7 @@ export const StudioBottomPanel: React.FC = () => {
     clearWorkflowLogs,
     activeConnectionId,
     connectionStatuses,
+    lastWorkflowRun,
   } = useStudioStore();
 
   const [logFilter, setLogFilter] = useState('');
@@ -120,6 +123,29 @@ export const StudioBottomPanel: React.FC = () => {
             <span className="text-[10px] bg-zinc-800/80 px-1 rounded text-zinc-400">
               {workflowLogs.length}
             </span>
+          </button>
+
+          <button
+            onClick={() => setBottomPanelTab('test_results')}
+            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded transition-colors font-medium cursor-pointer ${
+              bottomPanelTab === 'test_results'
+                ? 'bg-zinc-800 text-cyan-400 font-semibold shadow-sm'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+            <span>Test Results</span>
+            {lastWorkflowRun?.assertionSummary && (
+              <span
+                className={`text-[10px] px-1 rounded font-bold ${
+                  lastWorkflowRun.assertionSummary.failed > 0
+                    ? 'bg-rose-950/80 text-rose-400 border border-rose-800/60'
+                    : 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/60'
+                }`}
+              >
+                {lastWorkflowRun.assertionSummary.passed}/{lastWorkflowRun.assertionSummary.total}
+              </span>
+            )}
           </button>
 
           <button
@@ -330,6 +356,12 @@ export const StudioBottomPanel: React.FC = () => {
                 );
               })
             )}
+          </div>
+        )}
+
+        {bottomPanelTab === 'test_results' && (
+          <div className="h-full overflow-hidden">
+            <WorkflowTestResultsTab lastRun={lastWorkflowRun} />
           </div>
         )}
 

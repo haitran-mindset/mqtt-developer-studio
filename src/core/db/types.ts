@@ -88,10 +88,14 @@ export interface StoredMessage {
   contentType?: string;
 }
 
+import type { WorkflowAssertionResult } from '../workflow/types';
+export type { WorkflowAssertionResult };
+
 export interface WorkflowNodeData {
   label: string;
   stepType:
     | 'start_label'
+    | 'mqtt_trigger'
     | 'publish'
     | 'subscribe'
     | 'unsubscribe'
@@ -99,6 +103,7 @@ export interface WorkflowNodeData {
     | 'wait_for_message'
     | 'validate_payload'
     | 'validate_schema'
+    | 'run_script'
     | 'set_variable'
     | 'extract_variable'
     | 'condition'
@@ -143,5 +148,13 @@ export interface WorkflowRunRecord {
   startedAt: number;
   completedAt?: number;
   stepsLog: WorkflowStepRunLog[];
+  assertions?: WorkflowAssertionResult[];
+  assertionSummary?: {
+    total: number;
+    passed: number;
+    failed: number;
+  };
+  triggerType?: 'manual' | 'mqtt_event';
+  triggerTopic?: string;
   contextSnapshot: Record<string, any>;
 }
