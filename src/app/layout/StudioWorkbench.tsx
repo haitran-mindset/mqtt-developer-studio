@@ -14,7 +14,11 @@ import { connectionManager } from '@/core/mqtt/MQTTConnectionManager';
 import type { ConnectionProfile, PublishPreset, StoredMessage } from '@/core/db/types';
 import { Toaster } from 'sonner';
 
-export const StudioWorkbench: React.FC = () => {
+interface StudioWorkbenchProps {
+  onOpenDownloadModal?: () => void;
+}
+
+export const StudioWorkbench: React.FC<StudioWorkbenchProps> = ({ onOpenDownloadModal }) => {
   const {
     activeTab,
     setActiveTab,
@@ -75,7 +79,7 @@ export const StudioWorkbench: React.FC = () => {
   return (
     <div className="h-screen w-screen flex flex-col bg-zinc-950 text-zinc-100 overflow-hidden font-sans">
       {/* Studio Header Bar */}
-      <StudioHeader />
+      <StudioHeader onOpenDownloadModal={onOpenDownloadModal} />
 
       {/* Main Studio Middle Area */}
       <div className="flex-1 flex overflow-hidden">

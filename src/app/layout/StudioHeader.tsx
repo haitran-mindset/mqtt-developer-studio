@@ -5,7 +5,9 @@ import {
   Save,
   ShieldCheck,
   Menu,
+  Download,
 } from 'lucide-react';
+import { isTauriApp } from '@/core/mqtt/platform';
 import { useStudioStore } from '../store/studioStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,7 +37,11 @@ import {
 
 import { STUDIO_NAV_ITEMS } from './navigation';
 
-export const StudioHeader: React.FC = () => {
+interface StudioHeaderProps {
+  onOpenDownloadModal?: () => void;
+}
+
+export const StudioHeader: React.FC<StudioHeaderProps> = ({ onOpenDownloadModal }) => {
   const {
     activeTab,
     setActiveTab,
@@ -276,6 +282,19 @@ export const StudioHeader: React.FC = () => {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+
+        {!isTauriApp() && onOpenDownloadModal && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onOpenDownloadModal}
+            className="h-7 px-2 lg:px-2.5 text-xs flex items-center gap-1.5 border-emerald-500/40 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-900/40 hover:text-emerald-200 hover:border-emerald-500/70 shadow-sm shadow-emerald-950 transition-all shrink-0"
+            title="Download Native Desktop App (Native TCP 1883/8883)"
+          >
+            <Download className="h-3 w-3 text-emerald-400" />
+            <span className="hidden sm:inline font-medium text-[11px]">Download Desktop</span>
+          </Button>
+        )}
 
         <Button
           size="sm"
