@@ -203,6 +203,11 @@ npm run desktop:dev
 npm run desktop:build
 ```
 
+> **🍎 macOS Gatekeeper Note**: If macOS warns *"MQTT Developer Studio is damaged and can't be opened"* on a newly downloaded machine (standard Apple Gatekeeper quarantine for unsigned open-source binaries), simply run this in Terminal:
+> ```bash
+> xattr -cr "/Applications/MQTT Developer Studio.app"
+> ```
+
 ---
 
 ## 📂 Project Architecture

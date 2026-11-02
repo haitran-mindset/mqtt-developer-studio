@@ -13,6 +13,9 @@ import {
   X,
   Layers,
   Terminal,
+  Copy,
+  Check,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -82,6 +85,7 @@ export const WelcomeGatewayModal: React.FC<WelcomeGatewayModalProps> = ({
 }) => {
   const userOS = detectUserOS();
   const [selectedOS, setSelectedOS] = useState<SupportedOS>(userOS);
+  const [copiedCmd, setCopiedCmd] = useState(false);
 
   if (!isOpen && !isGateway) return null;
 
@@ -342,6 +346,35 @@ export const WelcomeGatewayModal: React.FC<WelcomeGatewayModalProps> = ({
                         </div>
                         <Download className="h-3.5 w-3.5 text-slate-400 group-hover/link:text-cyan-400 transition-colors" />
                       </button>
+
+                      {/* macOS Gatekeeper Quarantine Fix Helper */}
+                      <div className="mt-2.5 p-2.5 rounded-lg border border-amber-500/25 bg-amber-500/10 text-[11px] text-slate-300">
+                        <div className="flex items-center justify-between font-medium text-amber-400 mb-1">
+                          <span className="flex items-center gap-1.5">
+                            <AlertCircle className="h-3 w-3" />
+                            <span>First-time open on macOS?</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText('xattr -cr "/Applications/MQTT Developer Studio.app"');
+                              setCopiedCmd(true);
+                              setTimeout(() => setCopiedCmd(false), 2000);
+                              toast.success('Fix command copied to clipboard!');
+                            }}
+                            className="flex items-center gap-1 text-[10px] text-amber-300 hover:text-white bg-amber-500/20 hover:bg-amber-500/30 px-2 py-0.5 rounded transition-colors cursor-pointer"
+                          >
+                            {copiedCmd ? <Check className="h-2.5 w-2.5" /> : <Copy className="h-2.5 w-2.5" />}
+                            <span>{copiedCmd ? 'Copied!' : 'Copy Fix Command'}</span>
+                          </button>
+                        </div>
+                        <p className="text-slate-400 text-[10.5px] leading-relaxed">
+                          If macOS alerts <span className="text-amber-200">"damaged and can't be opened"</span> (Gatekeeper check for open-source apps), simply run this in Terminal:
+                        </p>
+                        <code className="block mt-1 p-1 px-1.5 rounded bg-black/50 text-emerald-400 font-mono text-[10px] select-all border border-white/5">
+                          xattr -cr "/Applications/MQTT Developer Studio.app"
+                        </code>
+                      </div>
                     </>
                   )}
 
