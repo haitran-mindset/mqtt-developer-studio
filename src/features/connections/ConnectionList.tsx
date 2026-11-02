@@ -85,7 +85,7 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
 
   const handleConfirmDeleteProfile = async () => {
     if (!deleteTargetProfile) return;
-    await connectionManager.disconnect(deleteTargetProfile.id);
+    await connectionManager.removeConnection(deleteTargetProfile.id);
     deleteConnectionProfile(deleteTargetProfile.id);
     if (activeConnectionId === deleteTargetProfile.id) {
       setActiveConnectionId(null);
@@ -96,7 +96,7 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
 
   const handleConfirmClearAll = async () => {
     for (const p of profiles) {
-      await connectionManager.disconnect(p.id);
+      await connectionManager.removeConnection(p.id);
     }
     clearAllConnectionProfiles();
     setActiveConnectionId(null);

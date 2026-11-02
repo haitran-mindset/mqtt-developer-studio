@@ -120,14 +120,18 @@ export class MQTTClientAdapter {
     this.addLog('info', `Connecting to ${brokerUrl}`);
 
     const isMQTT5 = this.profile.mqttVersion === '5.0';
+    const timeoutMs = this.profile.connectTimeout ?? 10000;
+    const configuredReconnectPeriod = this.profile.autoReconnect === false ? 0 : (this.profile.reconnectPeriod ?? 4000);
 
     const options: IClientOptions = {
       clientId: this.profile.clientId,
       protocolVersion: isMQTT5 ? 5 : 4,
       clean: this.profile.clean,
       keepalive: this.profile.keepalive ?? 60,
-      connectTimeout: this.profile.connectTimeout ?? 10000,
-      reconnectPeriod: this.profile.autoReconnect === false ? 0 : (this.profile.reconnectPeriod ?? 4000),
+      connectTimeout: timeoutMs,
+      // Disable auto-reconnect during initial handshake
+      // Only enable reconnect after successful CONNACK to prevent infinite retry loops on wrong hostname
+      reconnectPeriod: 0,
       reschedulePings: true,
       rejectUnauthorized: this.profile.sslSecure !== false,
     };
@@ -165,9 +169,21 @@ export class MQTTClientAdapter {
     return new Promise((resolve, reject) => {
       let resolved = false;
 
+      const connectionTimeoutTimer = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          const timeoutErrMsg = `Connection timed out after ${timeoutMs}ms trying to reach ${brokerUrl}`;
+          this.setStatus('error', timeoutErrMsg);
+          this.addLog('error', timeoutErrMsg);
+          this.client?.end(true);
+          reject(new Error(timeoutErrMsg));
+        }
+      }, timeoutMs);
+
       try {
         this.client = mqtt.connect(brokerUrl, options);
       } catch (err: any) {
+        clearTimeout(connectionTimeoutTimer);
         this.setStatus('error', err.message);
         this.addLog('error', `Failed to initialize MQTT client: ${err.message}`);
         reject(err);
@@ -175,8 +191,14 @@ export class MQTTClientAdapter {
       }
 
       this.client.on('connect', (connack: any) => {
+        clearTimeout(connectionTimeoutTimer);
         this.setStatus('connected');
         this.addLog('info', `Connected successfully to ${this.profile.name || this.profile.host}`, connack);
+
+        // Re-enable auto-reconnect now that initial connection succeeded
+        if (configuredReconnectPeriod > 0 && this.client) {
+          (this.client.options as any).reconnectPeriod = configuredReconnectPeriod;
+        }
 
         // Resubscribe to existing subscriptions if any
         if (this.subscriptions.size > 0) {
@@ -200,6 +222,15 @@ export class MQTTClientAdapter {
         if (this.status === 'connected') {
           this.setStatus('disconnected');
           this.addLog('warn', `Connection closed`);
+        } else if (!resolved) {
+          // Initial connection closed without succeeding
+          resolved = true;
+          clearTimeout(connectionTimeoutTimer);
+          const errMsg = `Failed to connect to ${brokerUrl} (Connection closed by broker/network)`;
+          this.setStatus('error', errMsg);
+          this.addLog('error', errMsg);
+          this.client?.end(true);
+          reject(new Error(errMsg));
         }
       });
 
@@ -208,6 +239,8 @@ export class MQTTClientAdapter {
         this.addLog('error', `MQTT Error: ${err.message}`);
         if (!resolved) {
           resolved = true;
+          clearTimeout(connectionTimeoutTimer);
+          this.client?.end(true);
           reject(err);
         }
       });
@@ -266,6 +299,9 @@ export class MQTTClientAdapter {
 
     return new Promise((resolve) => {
       this.addLog('info', `Disconnecting from broker...`);
+      if (this.client) {
+        (this.client.options as any).reconnectPeriod = 0;
+      }
       this.client?.end(force, {}, () => {
         this.client = null;
         this.setStatus('disconnected');

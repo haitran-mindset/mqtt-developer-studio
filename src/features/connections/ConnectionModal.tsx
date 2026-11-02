@@ -37,6 +37,7 @@ import type {
 } from "@/core/db/types";
 import { useDataStore } from "@/core/store/dataStore";
 import { toast } from "sonner";
+import { connectionManager } from "@/core/mqtt/MQTTConnectionManager";
 
 const connectionSchema = z.object({
   name: z.string().trim().min(1, "Connection name is required"),
@@ -232,6 +233,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
 
       if (profile) {
         useDataStore.getState().updateConnectionProfile(profileData);
+        await connectionManager.updateProfile(profileData);
         toast.success("Connection profile updated");
       } else {
         useDataStore.getState().addConnectionProfile(profileData);

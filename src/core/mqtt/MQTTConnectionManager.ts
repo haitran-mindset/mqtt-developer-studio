@@ -45,8 +45,41 @@ export class MQTTConnectionManager {
   async connect(profile: ConnectionProfile): Promise<AnyMQTTAdapter> {
     let adapter = this.connections.get(profile.id);
 
+    const isNativeTcp = (profile.protocol === 'mqtt' || profile.protocol === 'mqtts') && isTauriApp();
+    const isAdapterTypeMismatch =
+      adapter &&
+      ((isNativeTcp && !(adapter instanceof TauriTCPAdapter)) ||
+        (!isNativeTcp && !(adapter instanceof MQTTClientAdapter)));
+
+    // Detect if configuration has changed since this adapter was created
+    const hasConfigChanged =
+      adapter &&
+      (adapter.profile.host !== profile.host ||
+        adapter.profile.port !== profile.port ||
+        adapter.profile.protocol !== profile.protocol ||
+        adapter.profile.clientId !== profile.clientId ||
+        adapter.profile.username !== profile.username ||
+        adapter.profile.password !== profile.password ||
+        adapter.profile.path !== profile.path ||
+        adapter.profile.ssl !== profile.ssl ||
+        adapter.profile.sslSecure !== profile.sslSecure ||
+        adapter.profile.clean !== profile.clean ||
+        adapter.profile.keepalive !== profile.keepalive ||
+        adapter.profile.mqttVersion !== profile.mqttVersion);
+
+    // If adapter type mismatched or config updated, purge stale adapter
+    if (adapter && (isAdapterTypeMismatch || hasConfigChanged)) {
+      try {
+        await adapter.disconnect();
+      } catch (e) {
+        console.warn('Disconnecting stale adapter:', e);
+      }
+      this.connections.delete(profile.id);
+      adapter = undefined;
+    }
+
     if (!adapter) {
-      if ((profile.protocol === 'mqtt' || profile.protocol === 'mqtts') && isTauriApp()) {
+      if (isNativeTcp) {
         adapter = new TauriTCPAdapter(profile);
       } else {
         adapter = new MQTTClientAdapter(profile);
@@ -95,6 +128,22 @@ export class MQTTConnectionManager {
 
     await adapter.connect();
     return adapter;
+  }
+
+  async removeConnection(connectionId: string): Promise<void> {
+    const adapter = this.connections.get(connectionId);
+    if (adapter) {
+      try {
+        await adapter.disconnect();
+      } catch (e) {
+        console.warn('Error disconnecting before removal:', e);
+      }
+      this.connections.delete(connectionId);
+    }
+  }
+
+  async updateProfile(profile: ConnectionProfile): Promise<void> {
+    await this.removeConnection(profile.id);
   }
 
   async disconnect(connectionId: string, force?: boolean): Promise<void> {

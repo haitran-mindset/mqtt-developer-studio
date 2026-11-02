@@ -147,7 +147,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({ onOpenDownloadModal 
         {/* Active Broker Selector */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-zinc-400 font-medium hidden xl:inline">Broker:</span>
+            <span className="text-[11px] text-zinc-400 font-medium hidden 2xl:inline">Broker:</span>
             {profiles.length > 0 ? (
               <Select
                 value={activeConnectionId || activeProfile?.id || ''}
@@ -155,31 +155,21 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({ onOpenDownloadModal 
               >
                 <SelectTrigger
                   title={activeProfile?.name || 'Select broker...'}
-                  className="h-7 w-[105px] sm:w-[130px] lg:w-[160px] xl:w-[200px] text-xs font-sans"
+                  className="h-7 w-[100px] sm:w-[120px] md:w-[135px] text-xs font-sans"
                 >
                   <SelectValue placeholder="Select broker..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {profiles.map((p) => {
-                    const isConn = connectionStatuses[p.id]?.status === 'connected';
-                    return (
-                      <SelectItem key={p.id} value={p.id} className="text-xs font-sans">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full shrink-0 ${
-                              isConn
-                                ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]'
-                                : 'bg-zinc-600'
-                            }`}
-                          />
-                          <span className="truncate">{p.name}</span>
-                          <span className="text-[10px] text-cyan-400/80 font-mono shrink-0">
-                            ({p.protocol.toUpperCase()})
-                          </span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
+                  {profiles.map((p) => (
+                    <SelectItem key={p.id} value={p.id} className="text-xs font-sans">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="truncate">{p.name}</span>
+                        <span className="text-[10px] text-cyan-400/80 font-mono shrink-0">
+                          ({p.protocol.toUpperCase()})
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             ) : (
@@ -187,28 +177,40 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({ onOpenDownloadModal 
             )}
           </div>
 
-          {/* Quick Connect / Disconnect button */}
+          {/* Quick Connect / Disconnect button (Icon-only) */}
           {activeProfile && (
-            <Button
-              size="sm"
-              variant={currentStatus === 'connected' ? 'destructive' : 'default'}
-              onClick={handleToggleConnect}
-              className="h-7 px-2 sm:px-2.5 text-xs flex items-center gap-1.5 shrink-0"
-              title={currentStatus === 'connected' ? 'Disconnect' : currentStatus === 'connecting' ? 'Cancel Connection' : 'Connect'}
-            >
-              {currentStatus === 'connecting' ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Power className="h-3 w-3" />
-              )}
-              <span className="hidden xl:inline">
-                {currentStatus === 'connected'
-                  ? 'Disconnect'
-                  : currentStatus === 'connecting'
-                  ? 'Connecting...'
-                  : 'Connect'}
-              </span>
-            </Button>
+            <TooltipProvider delayDuration={150}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant={currentStatus === 'connected' ? 'destructive' : 'default'}
+                    onClick={handleToggleConnect}
+                    className="h-7 w-7 p-0 flex items-center justify-center shrink-0"
+                    aria-label={
+                      currentStatus === 'connected'
+                        ? 'Disconnect'
+                        : currentStatus === 'connecting'
+                        ? 'Cancel Connection'
+                        : 'Connect'
+                    }
+                  >
+                    {currentStatus === 'connecting' ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Power className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">
+                  {currentStatus === 'connected'
+                    ? `Disconnect from ${activeProfile.name}`
+                    : currentStatus === 'connecting'
+                    ? 'Connecting...'
+                    : `Connect to ${activeProfile.name}`}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
 
           {/* Status Badge */}
