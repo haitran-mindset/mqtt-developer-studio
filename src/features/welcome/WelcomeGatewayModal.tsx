@@ -23,6 +23,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { APP_CONFIG, type PlatformTarget } from '@/core/config/appConfig';
 
 interface WelcomeGatewayModalProps {
   isGateway?: boolean;
@@ -62,24 +63,6 @@ function detectUserOS(): SupportedOS {
   return 'macos';
 }
 
-const GITHUB_RELEASES_URL = 'https://github.com/haitran-mindset/mqtt-developer-studio/releases/latest';
-const GITHUB_DOWNLOAD_BASE = 'https://github.com/haitran-mindset/mqtt-developer-studio/releases/latest/download';
-
-export const DIRECT_DOWNLOAD_LINKS = {
-  macos: {
-    arm64: `${GITHUB_DOWNLOAD_BASE}/MQTT.Developer.Studio_1.0.2_aarch64.dmg`,
-    intel: `${GITHUB_DOWNLOAD_BASE}/MQTT.Developer.Studio_1.0.2_x64.dmg`,
-  },
-  windows: {
-    x64: `${GITHUB_DOWNLOAD_BASE}/MQTT.Developer.Studio_1.0.2_x64-setup.exe`,
-    arm64: `${GITHUB_DOWNLOAD_BASE}/MQTT.Developer.Studio_1.0.2_arm64-setup.exe`,
-  },
-  linux: {
-    deb: `${GITHUB_DOWNLOAD_BASE}/MQTT.Developer.Studio_1.0.2_amd64.deb`,
-    appimage: `${GITHUB_DOWNLOAD_BASE}/MQTT.Developer.Studio_1.0.2_amd64.AppImage`,
-  },
-};
-
 export const WelcomeGatewayModal: React.FC<WelcomeGatewayModalProps> = ({
   isGateway = false,
   isOpen = true,
@@ -93,7 +76,9 @@ export const WelcomeGatewayModal: React.FC<WelcomeGatewayModalProps> = ({
 
   if (!isOpen && !isGateway) return null;
 
-  const handleDirectDownload = (url: string, filename: string) => {
+  const handleDirectDownload = (target: PlatformTarget) => {
+    const url = APP_CONFIG.getDownloadUrl(target);
+    const filename = APP_CONFIG.getDownloadFilename(target);
     toast.success(`Starting download: ${filename}`, {
       description: 'Your download should begin automatically in your browser.',
     });
@@ -105,19 +90,12 @@ export const WelcomeGatewayModal: React.FC<WelcomeGatewayModalProps> = ({
     document.body.removeChild(link);
   };
 
-  const defaultDownloadUrl =
+  const defaultTarget: PlatformTarget =
     userOS === 'macos'
-      ? DIRECT_DOWNLOAD_LINKS.macos.arm64
+      ? 'macos-arm64'
       : userOS === 'windows'
-      ? DIRECT_DOWNLOAD_LINKS.windows.x64
-      : DIRECT_DOWNLOAD_LINKS.linux.deb;
-
-  const defaultFilename =
-    userOS === 'macos'
-      ? 'MQTT.Developer.Studio_1.0.2_aarch64.dmg'
-      : userOS === 'windows'
-      ? 'MQTT.Developer.Studio_1.0.2_x64-setup.exe'
-      : 'MQTT.Developer.Studio_1.0.2_amd64.deb';
+      ? 'windows-x64'
+      : 'linux-deb';
 
   const defaultBtnLabel =
     userOS === 'macos'
@@ -158,7 +136,7 @@ export const WelcomeGatewayModal: React.FC<WelcomeGatewayModalProps> = ({
             <Radio className="h-3 w-3 text-cyan-400 animate-pulse" />
             <span>MQTT Developer Studio</span>
             <span className="text-slate-500">•</span>
-            <span className="text-cyan-400 font-mono text-[10px]">v1.0.2</span>
+            <span className="text-cyan-400 font-mono text-[10px]">v{APP_CONFIG.version}</span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
@@ -338,29 +316,18 @@ export const WelcomeGatewayModal: React.FC<WelcomeGatewayModalProps> = ({
                   {selectedOS === 'macos' && (
                     <>
                       <button
-                        onClick={() =>
-                          handleDirectDownload(
-                            DIRECT_DOWNLOAD_LINKS.macos.arm64,
-                            'MQTT.Developer.Studio_1.0.1_aarch64.dmg'
-                          )
-                        }
+                        onClick={() => handleDirectDownload('macos-arm64')}
                         className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-emerald-500/25 bg-emerald-950/20 hover:bg-emerald-950/50 hover:border-emerald-500/50 transition-colors text-xs text-slate-200 group/link cursor-pointer text-left"
                       >
                         <div className="flex items-center gap-2">
                           <Cpu className="h-3 w-3 text-emerald-400" />
                           <span className="font-medium text-white text-[11px]">Apple Silicon (M1/M2/M3/M4) .dmg</span>
-                          <span className="text-[10px] font-mono text-emerald-400/80 bg-emerald-500/10 px-1 rounded">4.1 MB</span>
                         </div>
                         <Download className="h-3.5 w-3.5 text-emerald-400 group-hover/link:translate-y-0.5 transition-transform" />
                       </button>
 
                       <button
-                        onClick={() =>
-                          handleDirectDownload(
-                            DIRECT_DOWNLOAD_LINKS.macos.intel,
-                            'MQTT.Developer.Studio_1.0.1_x64.dmg'
-                          )
-                        }
+                        onClick={() => handleDirectDownload('macos-intel')}
                         className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-white/[0.08] bg-slate-800/30 hover:bg-slate-800/60 hover:border-cyan-500/30 transition-colors text-xs text-slate-200 group/link cursor-pointer text-left"
                       >
                         <div className="flex items-center gap-2">
@@ -375,12 +342,7 @@ export const WelcomeGatewayModal: React.FC<WelcomeGatewayModalProps> = ({
                   {selectedOS === 'windows' && (
                     <>
                       <button
-                        onClick={() =>
-                          handleDirectDownload(
-                            DIRECT_DOWNLOAD_LINKS.windows.x64,
-                            'MQTT.Developer.Studio_1.0.1_x64-setup.exe'
-                          )
-                        }
+                        onClick={() => handleDirectDownload('windows-x64')}
                         className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-white/[0.08] bg-slate-800/30 hover:bg-slate-800/60 hover:border-blue-500/30 transition-colors text-xs text-slate-200 group/link cursor-pointer text-left"
                       >
                         <div className="flex items-center gap-2">
@@ -391,12 +353,7 @@ export const WelcomeGatewayModal: React.FC<WelcomeGatewayModalProps> = ({
                       </button>
 
                       <button
-                        onClick={() =>
-                          handleDirectDownload(
-                            DIRECT_DOWNLOAD_LINKS.windows.arm64,
-                            'MQTT.Developer.Studio_1.0.1_arm64-setup.exe'
-                          )
-                        }
+                        onClick={() => handleDirectDownload('windows-arm64')}
                         className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-white/[0.08] bg-slate-800/30 hover:bg-slate-800/60 hover:border-teal-500/30 transition-colors text-xs text-slate-200 group/link cursor-pointer text-left"
                       >
                         <div className="flex items-center gap-2">
@@ -411,12 +368,7 @@ export const WelcomeGatewayModal: React.FC<WelcomeGatewayModalProps> = ({
                   {selectedOS === 'linux' && (
                     <>
                       <button
-                        onClick={() =>
-                          handleDirectDownload(
-                            DIRECT_DOWNLOAD_LINKS.linux.deb,
-                            'MQTT.Developer.Studio_1.0.1_amd64.deb'
-                          )
-                        }
+                        onClick={() => handleDirectDownload('linux-deb')}
                         className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-white/[0.08] bg-slate-800/30 hover:bg-slate-800/60 hover:border-orange-500/30 transition-colors text-xs text-slate-200 group/link cursor-pointer text-left"
                       >
                         <div className="flex items-center gap-2">
@@ -427,12 +379,7 @@ export const WelcomeGatewayModal: React.FC<WelcomeGatewayModalProps> = ({
                       </button>
 
                       <button
-                        onClick={() =>
-                          handleDirectDownload(
-                            DIRECT_DOWNLOAD_LINKS.linux.appimage,
-                            'MQTT.Developer.Studio_1.0.1_amd64.AppImage'
-                          )
-                        }
+                        onClick={() => handleDirectDownload('linux-appimage')}
                         className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-white/[0.08] bg-slate-800/30 hover:bg-slate-800/60 hover:border-purple-500/30 transition-colors text-xs text-slate-200 group/link cursor-pointer text-left"
                       >
                         <div className="flex items-center gap-2">
@@ -488,7 +435,7 @@ export const WelcomeGatewayModal: React.FC<WelcomeGatewayModalProps> = ({
             {/* Direct Download CTA */}
             <div className="mt-5 pt-2">
               <Button
-                onClick={() => handleDirectDownload(defaultDownloadUrl, defaultFilename)}
+                onClick={() => handleDirectDownload(defaultTarget)}
                 className="w-full h-10 text-xs sm:text-sm font-semibold bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Download className="h-3.5 w-3.5" />
@@ -503,11 +450,11 @@ export const WelcomeGatewayModal: React.FC<WelcomeGatewayModalProps> = ({
         <div className="mt-5 pt-3 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-slate-400">
           <div className="flex items-center gap-2">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            <span>v1.0.2 • Open-source on GitHub</span>
+            <span>v{APP_CONFIG.version} • Open-source on GitHub</span>
           </div>
           <div className="flex items-center gap-3">
             <a
-              href={GITHUB_RELEASES_URL}
+              href={APP_CONFIG.releasesUrl}
               target="_blank"
               rel="noreferrer"
               className="hover:text-emerald-400 transition-colors flex items-center gap-1 text-[11px]"
