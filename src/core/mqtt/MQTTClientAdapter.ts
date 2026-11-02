@@ -59,11 +59,21 @@ export class MQTTClientAdapter {
     });
   }
 
+  private lastLogMsg: string = '';
+  private lastLogTime: number = 0;
+
   private addLog(level: 'info' | 'warn' | 'error' | 'packet', message: string, details?: any): void {
+    const now = Date.now();
+    if (level === 'error' && message === this.lastLogMsg && now - this.lastLogTime < 1500) {
+      return;
+    }
+    this.lastLogMsg = message;
+    this.lastLogTime = now;
+
     const log: ConnectionEventLog = {
       id: uuidv4(),
       connectionId: this.profile.id,
-      timestamp: Date.now(),
+      timestamp: now,
       level,
       message,
       // Never leak sensitive password in details
@@ -83,10 +93,12 @@ export class MQTTClientAdapter {
       await this.disconnect();
     }
 
+    const host = (this.profile.host || '').trim();
+
     if (typeof window !== 'undefined' && (this.profile.protocol === 'mqtt' || this.profile.protocol === 'mqtts')) {
       const suggestedProtocol = this.profile.protocol === 'mqtts' ? 'wss' : 'ws';
       const suggestedPort = this.profile.protocol === 'mqtts' ? 443 : 80;
-      const errorMsg = `Web browsers cannot connect to raw TCP socket '${this.profile.protocol}://${this.profile.host}:${this.profile.port}'. Please switch Protocol to '${suggestedProtocol}://' (usually port ${suggestedPort} or 8084, path '/mqtt').`;
+      const errorMsg = `Web browsers cannot connect to raw TCP socket '${this.profile.protocol}://${host}:${this.profile.port}'. Please switch Protocol to '${suggestedProtocol}://' (usually port ${suggestedPort} or 8084, path '/mqtt').`;
       this.setStatus('error', errorMsg);
       this.addLog('error', errorMsg);
       throw new Error(errorMsg);
@@ -102,8 +114,8 @@ export class MQTTClientAdapter {
         : '/mqtt'
       : '';
     const brokerUrl = isWs
-      ? `${this.profile.protocol}://${this.profile.host}:${port}${path}`
-      : `${this.profile.protocol}://${this.profile.host}:${port}`;
+      ? `${this.profile.protocol}://${host}:${port}${path}`
+      : `${this.profile.protocol}://${host}:${port}`;
 
     this.addLog('info', `Connecting to ${brokerUrl}`);
 

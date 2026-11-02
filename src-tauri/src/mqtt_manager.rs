@@ -61,9 +61,14 @@ impl MqttManager {
         // Disconnect existing session if present
         self.disconnect(&conn_id).await.ok();
 
+        let host = opts.host.trim();
+        if host.is_empty() {
+            return Err("Broker hostname cannot be empty".to_string());
+        }
+
         let mut mqttoptions = MqttOptions::new(
             &opts.client_id,
-            &opts.host,
+            host,
             opts.port,
         );
 
@@ -91,9 +96,18 @@ impl MqttManager {
         // Spawn async background event loop forwarding packets to webview
         let app_clone = app.clone();
         let loop_conn_id = conn_id.clone();
+        let sessions_clone = Arc::clone(&self.sessions);
 
         tokio::spawn(async move {
             loop {
+                // Terminate loop if session was disconnected / removed
+                {
+                    let lock = sessions_clone.read().await;
+                    if !lock.contains_key(&loop_conn_id) {
+                        break;
+                    }
+                }
+
                 match eventloop.poll().await {
                     Ok(event) => match event {
                         Event::Incoming(Packet::ConnAck(_)) => {
@@ -150,6 +164,8 @@ impl MqttManager {
                                     },
                                 )
                                 .ok();
+                            let mut lock = sessions_clone.write().await;
+                            lock.remove(&loop_conn_id);
                             break;
                         }
                         _ => {}
@@ -167,12 +183,30 @@ impl MqttManager {
                             )
                             .ok();
 
-                        // Break loop on fatal connection error
-                        if err_str.contains("ConnectionAborted")
+                        // Fatal connection errors: DNS failure, connection refused, network unreachable, etc.
+                        let is_fatal = err_str.contains("failed to lookup")
+                            || err_str.contains("nodename nor servname")
+                            || err_str.contains("ConnectionAborted")
                             || err_str.contains("Closed")
                             || err_str.contains("Refused")
-                        {
+                            || err_str.contains("AddrNotAvailable")
+                            || err_str.contains("NetworkUnreachable");
+
+                        if is_fatal {
+                            let mut lock = sessions_clone.write().await;
+                            lock.remove(&loop_conn_id);
                             break;
+                        }
+
+                        // Backoff sleep to prevent high CPU loop and event storms
+                        tokio::time::sleep(Duration::from_millis(1500)).await;
+
+                        // Check again if session was removed during sleep
+                        {
+                            let lock = sessions_clone.read().await;
+                            if !lock.contains_key(&loop_conn_id) {
+                                break;
+                            }
                         }
                     }
                 }

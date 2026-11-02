@@ -77,11 +77,22 @@ export class TauriTCPAdapter {
     });
   }
 
+  private lastLogMsg: string = '';
+  private lastLogTime: number = 0;
+
   private addLog(level: 'info' | 'warn' | 'error' | 'packet', message: string, details?: any): void {
+    const now = Date.now();
+    // Throttle identical error messages within 1500ms to avoid flooding UI
+    if (level === 'error' && message === this.lastLogMsg && now - this.lastLogTime < 1500) {
+      return;
+    }
+    this.lastLogMsg = message;
+    this.lastLogTime = now;
+
     const log: ConnectionEventLog = {
       id: uuidv4(),
       connectionId: this.profile.id,
-      timestamp: Date.now(),
+      timestamp: now,
       level,
       message,
       details,
@@ -101,10 +112,11 @@ export class TauriTCPAdapter {
     }
 
     this.setStatus('connecting');
+    const host = (this.profile.host || '').trim();
     const port = this.profile.port || (this.profile.protocol === 'mqtts' ? 8883 : 1883);
     const useTls = this.profile.protocol === 'mqtts' || !!this.profile.ssl;
 
-    this.addLog('info', `Connecting to native TCP socket at ${this.profile.host}:${port} (TLS: ${useTls})`);
+    this.addLog('info', `Connecting to native TCP socket at ${host}:${port} (TLS: ${useTls})`);
 
     // Clean up old listeners if any
     if (this.unlistenMsg) this.unlistenMsg();
@@ -138,44 +150,73 @@ export class TauriTCPAdapter {
       }
     );
 
-    // Listen for status changes from Rust rumqttc
-    this.unlistenStatus = await listen<TauriStatusUpdate>(
-      `mqtt-status-${this.profile.id}`,
-      (event) => {
-        const { status, error } = event.payload;
-        if (status === 'connected') {
-          this.setStatus('connected');
-          this.addLog('info', `Successfully connected to native broker ${this.profile.host}:${port}`);
-        } else if (status === 'disconnected') {
-          this.setStatus('disconnected');
-          this.addLog('warn', 'Disconnected from broker');
-        } else if (status === 'error') {
-          this.setStatus('error', error);
-          this.addLog('error', `Connection error: ${error || 'Unknown error'}`);
+    return new Promise<void>(async (resolve, reject) => {
+      let settled = false;
+      const timeoutMs = this.profile.connectTimeout || 10000;
+
+      const timer = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          const msg = `Connection timed out after ${timeoutMs}ms`;
+          this.setStatus('error', msg);
+          this.addLog('error', msg);
+          reject(new Error(msg));
+        }
+      }, timeoutMs);
+
+      // Listen for status changes from Rust rumqttc
+      this.unlistenStatus = await listen<TauriStatusUpdate>(
+        `mqtt-status-${this.profile.id}`,
+        (event) => {
+          const { status, error } = event.payload;
+          if (status === 'connected') {
+            this.setStatus('connected');
+            this.addLog('info', `Successfully connected to native broker ${host}:${port}`);
+            if (!settled) {
+              settled = true;
+              clearTimeout(timer);
+              resolve();
+            }
+          } else if (status === 'disconnected') {
+            this.setStatus('disconnected');
+            this.addLog('warn', 'Disconnected from broker');
+          } else if (status === 'error') {
+            this.setStatus('error', error);
+            this.addLog('error', `Connection error: ${error || 'Unknown error'}`);
+            if (!settled) {
+              settled = true;
+              clearTimeout(timer);
+              reject(new Error(error || 'Connection error'));
+            }
+          }
+        }
+      );
+
+      try {
+        await invoke('connect_mqtt', {
+          opts: {
+            connection_id: this.profile.id,
+            host,
+            port,
+            client_id: this.profile.clientId,
+            keep_alive: this.profile.keepalive ?? 60,
+            clean_session: this.profile.clean ?? true,
+            username: this.profile.username || null,
+            password: this.profile.password || null,
+            use_tls: useTls,
+          },
+        });
+      } catch (err: any) {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          const errMsg = typeof err === 'string' ? err : err?.message || 'Failed to connect via native TCP';
+          this.setStatus('error', errMsg);
+          this.addLog('error', errMsg);
+          reject(new Error(errMsg));
         }
       }
-    );
-
-    try {
-      await invoke('connect_mqtt', {
-        opts: {
-          connection_id: this.profile.id,
-          host: this.profile.host,
-          port,
-          client_id: this.profile.clientId,
-          keep_alive: this.profile.keepalive ?? 60,
-          clean_session: this.profile.clean ?? true,
-          username: this.profile.username || null,
-          password: this.profile.password || null,
-          use_tls: useTls,
-        },
-      });
-    } catch (err: any) {
-      const errMsg = typeof err === 'string' ? err : err?.message || 'Failed to connect via native TCP';
-      this.setStatus('error', errMsg);
-      this.addLog('error', errMsg);
-      throw new Error(errMsg);
-    }
+    });
   }
 
   async disconnect(): Promise<void> {

@@ -39,9 +39,24 @@ import { useDataStore } from "@/core/store/dataStore";
 import { toast } from "sonner";
 
 const connectionSchema = z.object({
-  name: z.string().min(1, "Connection name is required"),
+  name: z.string().trim().min(1, "Connection name is required"),
   protocol: z.enum(["mqtt", "mqtts", "ws", "wss"]),
-  host: z.string().min(1, "Host is required"),
+  host: z
+    .string()
+    .trim()
+    .min(1, "Broker hostname is required")
+    .refine(
+      (val) => !/^[a-zA-Z0-9]+:\/\//.test(val),
+      "Hostname must not include protocol prefix (e.g. 'mqtt://'). Select Protocol from the dropdown."
+    )
+    .refine(
+      (val) => !val.includes("/"),
+      "Hostname must not include path or slashes '/'. Enter path in the Path field."
+    )
+    .refine(
+      (val) => !/:[0-9]+$/.test(val),
+      "Hostname must not include port (e.g. ':1883'). Enter port in the Port field."
+    ),
   port: z.preprocess((val) => {
     if (val === "" || val === undefined || val === null) return 443;
     const num = Number(val);
@@ -185,15 +200,15 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
     try {
       const profileData: ConnectionProfile = {
         id: profile?.id || `broker-${Date.now()}`,
-        name: values.name,
+        name: values.name.trim(),
         protocol: values.protocol,
         ssl: values.ssl,
         sslSecure: values.sslSecure,
-        host: values.host,
+        host: values.host.trim(),
         port: values.port,
-        path: values.path,
-        clientId: values.clientId,
-        username: values.username || undefined,
+        path: values.path?.trim() || "",
+        clientId: values.clientId.trim(),
+        username: values.username?.trim() || undefined,
         password: values.password || undefined,
         mqttVersion: values.mqttVersion,
         clean: values.clean,
