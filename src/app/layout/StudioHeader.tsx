@@ -6,6 +6,7 @@ import {
   ShieldCheck,
   Menu,
   Download,
+  Loader2,
 } from 'lucide-react';
 import { isTauriApp } from '@/core/mqtt/platform';
 import { useStudioStore } from '../store/studioStore';
@@ -193,9 +194,13 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({ onOpenDownloadModal 
               variant={currentStatus === 'connected' ? 'destructive' : 'default'}
               onClick={handleToggleConnect}
               className="h-7 px-2 sm:px-2.5 text-xs flex items-center gap-1.5 shrink-0"
-              title={currentStatus === 'connected' ? 'Disconnect' : 'Connect'}
+              title={currentStatus === 'connected' ? 'Disconnect' : currentStatus === 'connecting' ? 'Cancel Connection' : 'Connect'}
             >
-              <Power className="h-3 w-3" />
+              {currentStatus === 'connecting' ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Power className="h-3 w-3" />
+              )}
               <span className="hidden xl:inline">
                 {currentStatus === 'connected'
                   ? 'Disconnect'
@@ -213,8 +218,8 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({ onOpenDownloadModal 
               <span className="hidden xl:inline">Connected</span>
             </Badge>
           ) : currentStatus === 'connecting' ? (
-            <Badge variant="amber" className="gap-1 animate-spin px-1.5 lg:px-2 shrink-0">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+            <Badge variant="amber" className="gap-1.5 px-1.5 lg:px-2 shrink-0">
+              <Loader2 className="h-3 w-3 animate-spin text-amber-400" />
               <span className="hidden xl:inline">Connecting</span>
             </Badge>
           ) : (
